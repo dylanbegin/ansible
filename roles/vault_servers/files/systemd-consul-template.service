@@ -1,0 +1,16 @@
+# Anisble managed
+
+[Unit]
+Description=consul-template Vault
+After=vault-unseal.service
+Requires=vault.service
+PartOf=vault.service
+
+[Service]
+EnvironmentFile=-/etc/sysconfig/consul-template
+Restart=on-failure
+ExecStart=/usr/bin/consul-template $OPTIONS -config='/etc/consul-template.d/pki-config.hcl'
+KillSignal=SIGINT
+
+[Install]
+WantedBy=multi-user.target vault.service

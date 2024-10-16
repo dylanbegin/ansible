@@ -1,0 +1,32 @@
+# roles/swarm_servers/handlers/main.yml
+# Handling all services.
+
+- name: restart-cloudinit
+  ansible.builtin.service:
+    name: cloud-init
+    state: restarted
+    enabled: true
+
+- name: restart-iptables
+  ansible.builtin.service:
+    name: iptables
+    state: restarted
+    enabled: true
+
+- name: restart-firewalld
+  ansible.builtin.service:
+    name: firewalld
+    state: restarted
+    enabled: true
+
+- name: restart-keepalived
+  ansible.builtin.service:
+    name: keepalived
+    state: restarted
+    enabled: true
+
+- name: restart-docker
+  ansible.builtin.service:
+    name: docker
+    state: restarted
+    enabled: true

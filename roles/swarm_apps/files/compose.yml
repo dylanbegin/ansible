@@ -1,0 +1,115 @@
+services:
+######### SQL Database #########
+  postgres:
+    image: postgres:16-alpine
+    networks:
+      - backend
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /opt/postgres:/var/lib/postgresql/data
+    secrets:
+      - postgres_password
+    environment:
+      PGDATA: /var/lib/postgresql/data/databases
+      POSTGRES_DB: nothing #empty db that wont be used
+      POSTGRES_USER: svcpostgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_password
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1gb
+######### Traefik #########
+  traefik:
+    image: traefik:v3.1.5
+    networks:
+      - frontend
+    ports:
+      - 443:443
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /opt/traefik/traefik.yml:/traefik.yml:ro
+      - /opt/traefik/config.yml:/config.yml:ro
+      - /opt/traefik/acme.json:/acme.json
+    secrets:
+      - traefik_api
+    environment:
+      CF_DNS_API_TOKEN_FILE: /run/secrets/traefik_api
+      LEGO_DISABLE_CNAME_SUPPORT: "false"
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      resources:
+        limits:
+          cpus: "2"
+          memory: 1gb
+      labels:
+        - traefik.docker.network=prod_frontend
+        - traefik.docker.lbswarm=true
+        - traefik.enable=true
+        - traefik.http.routers.proxy.entrypoints=https
+        - traefik.http.routers.proxy.middlewares=default-headers@file
+        - traefik.http.routers.proxy.rule=Host(`proxy.cryogence.net`)
+        - traefik.http.routers.proxy.service=api@internal
+        - traefik.http.routers.proxy.tls=true
+        - traefik.http.routers.proxy.tls.certresolver=cloudflare
+        - traefik.http.services.proxy.loadbalancer.server.port=8080
+######### Gitea #########
+  gitea:
+    image: gitea/gitea:1.22.2
+    networks:
+      - frontend
+      - backend
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /opt/git:/data
+    environment:
+      USER_UID: 1000
+      USER_GID: 1000
+    env_file:
+      - /mnt/ark/build/secrets/swarm/gitea_creds.env
+    depends_on:
+      - postgres
+    deploy:
+      mode: replicated
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+      resources:
+        limits:
+          cpus: "4"
+          memory: 2gb
+      labels:
+        - traefik.docker.network=prod_frontend
+        - traefik.docker.lbswarm=true
+        - traefik.enable=true
+        - traefik.http.routers.git.entrypoints=https
+        - traefik.http.routers.git.middlewares=default-headers@file
+        - traefik.http.routers.git.rule=Host(`git.cryogence.net`)
+        - traefik.http.routers.git.tls=true
+        - traefik.http.routers.git.tls.certresolver=cloudflare
+        - traefik.http.services.git.loadbalancer.server.port=3000
+
+networks:
+  frontend:
+    external: false
+    driver: overlay
+  backend:
+    external: false
+    driver: overlay
+
+secrets:
+  postgres_password:
+    file: /mnt/ark/build/secrets/swarm/postgres_password
+  traefik_api:
+    file: /mnt/ark/build/secrets/swarm/traefik_api

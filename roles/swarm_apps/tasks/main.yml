@@ -1,0 +1,14 @@
+# roles/swarm_apps/tasks/main.yml
+# deploy/update swarm apps.
+
+# Include variables
+- name: Import | Include variable files.
+  ansible.builtin.include_vars:
+    dir: vars
+
+# Stage all servers and prep for cluster build.
+- name: Call task | Call deps task.
+  ansible.builtin.include_tasks: deps.yml
+
+- name: Call task | Call apps task.
+  ansible.builtin.include_tasks: apps.yml

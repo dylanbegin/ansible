@@ -1,0 +1,29 @@
+# /roles/base/tasks/main.yml
+# List of tasks to run for base role.
+
+# Include variables
+- name: Import | Include variable files.
+  ansible.builtin.include_vars:
+    dir: vars
+
+# Run update tasks
+- name: Base | Run all system updates.
+  ansible.builtin.import_tasks: updates.yml
+
+- name: Base | Import public SSH keys
+  ansible.builtin.import_tasks: set-ssh.yml
+
+- name: Base | Update DNS configurations.
+  ansible.builtin.import_tasks: updates-dns.yml
+  when: inventory_hostname in groups['dns_servers']
+
+#- name: Base | Update vault configurations.
+#  ansible.builtin.import_tasks: updates-vault.yml
+#  when: inventory_hostname in groups['vault_servers']
+
+- name: Base | Reboot all servers.
+  ansible.builtin.reboot:
+
+- name: Base | Pause to let servers reboot.
+  ansible.builtin.pause:
+    seconds: 20

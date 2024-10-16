@@ -1,0 +1,228 @@
+# roles/vault_servers/tasks/install.yml
+# Install Hashicorp Vault server.
+
+# temp fix for: https://gitlab.alpinelinux.org/alpine/cloud/alpine-cloud-images/-/issues/160
+- name: Temp fix | Manually set dns.
+  ansible.builtin.shell:
+    cmd: |
+      cat << EOF > /etc/resolv.conf
+      nameserver 10.10.10.21
+      nameserver 10.10.10.22
+      EOF
+  when: ansible_distribution in ['Alpine']
+
+- name: Temp fix | Restart networking.
+  ansible.builtin.shell:
+    cmd: rc-service networking restart
+  when: ansible_distribution in ['Alpine']
+
+# Install dependencies
+- name: Install | Deps | Install dependencies APK.
+  community.general.apk:
+    name: '{{ vault_deps_apk }}'
+    state: latest
+    no_cache: true
+  when: ansible_distribution in ['Alpine']
+
+- name: Install | Deps | Install dependencies APT.
+  ansible.builtin.apt:
+    name: '{{ vault_deps_apt }}'
+    state: latest
+    update_cache: false
+  when: ansible_distribution in ['Debian', 'Ubuntu']
+
+- name: Install | Deps | Install dependencies RPM.
+  ansible.builtin.dnf:
+    name: '{{ vault_deps_dnf }}'
+    state: latest
+    update_cache: true
+  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+
+- name: Install | Deps | Create vault group.
+  ansible.builtin.group:
+    name: vault
+    state: present
+
+- name: Install | Deps | Create vault user.
+  ansible.builtin.user:
+    name: vault
+    group: vault
+    shell: /sbin/nologin
+    create_home: false
+    password_lock: true
+    state: present
+
+- name: Install | Deps | Create application directories.
+  ansible.builtin.file:
+    path: '{{ item }}'
+    owner: vault
+    group: vault
+    mode: 0775
+    state: directory
+  with_items:
+    - /etc/consul-template.d
+    - /etc/vault.d
+    - /opt/vault/data
+    - /opt/vault/tls
+    - /var/log/vault
+
+# Configure firewalld.
+- name: Install | Firewall | Configure iptables rules.
+  ansible.builtin.template:
+    src: iptables.rules.j2
+    dest: /etc/iptables/iptables.rules
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart-iptables
+  when: ansible_distribution in ['Alpine', 'Debian', 'Ubuntu']
+
+- name: Install | Firewall | Load firewall rules.
+  ansible.builtin.shell:
+    cmd: iptables-restore < /etc/iptables/iptables.rules
+  when: ansible_distribution in ['Alpine', 'Debian', 'Ubuntu']
+
+- name: Install | Firewall | Write firewall rules to disk.
+  ansible.builtin.command:
+    cmd: rc-service iptables save
+  when: ansible_distribution in ['Alpine']
+
+- name: Install | Firewall | Enable iptables service.
+  ansible.builtin.command:
+    cmd: rc-update add iptables
+  when: ansible_distribution in ['Alpine']
+
+- name: Install | Firewall | Modify firewall default zone.
+  ansible.posix.firewalld:
+    zone: public
+    service: '{{ item }}'
+    state: enabled
+    permanent: true
+  loop:
+    - https
+  notify: restart-firewalld
+  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+
+- name: Install | Firewall | Add vault web port.
+  ansible.posix.firewalld:
+    zone: public
+    port: '{{ item }}'
+    state: enabled
+    permanent: true
+  loop:
+    - 8200/tcp #API port
+    - 8201/tcp #Cluster port
+    - 8125/tcp #Telemetry port
+  notify: restart-firewalld
+  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+
+# Configure local DNS
+- name: DNS | Replace cloud-init hosts file
+  ansible.builtin.template:
+    src: cloudinit-hosts.j2
+    dest: '{{ dist_cloudinit_dest[ansible_distribution] }}'
+    owner: root
+    group: root
+    mode: 0640
+  notify: restart-cloudinit
+
+# Temp self signed certificate setup on distros that do not include cert. Will be replaced with consul in pki role.
+# its a wierd chicken and egg situation but it works.
+- name: Install | OpenSSL | Generate private ECC 384 key.
+  community.crypto.openssl_privatekey:
+    path: '{{ consul_key_path }}'
+    select_crypto_backend: cryptography
+    curve: secp384r1
+    type: ECC
+    owner: vault
+    group: vault
+  when: ansible_distribution in ['Alpine']
+
+- name: Install | OpenSSL | Generate CA CSR with Subject Information ECC 384.
+  community.crypto.openssl_csr:
+    path: /tmp/server-csr.csr
+    privatekey_path: '{{ consul_key_path }}'
+    select_crypto_backend: cryptography
+    organization_name: '{{ ca_org }}'
+    common_name: '{{ ansible_fqdn }}'
+    subject_alt_name:
+      - "DNS:{{ ansible_fqdn }}"
+  when: ansible_distribution in ['Alpine']
+
+- name: Install | OpenSSL | Generate vault private certificate ChaCha20 TLS1.3.
+  community.crypto.x509_certificate:
+    path: '{{ consul_cert_path }}'
+    privatekey_path: '{{ consul_key_path }}'
+    csr_path: /tmp/server-csr.csr
+    provider: selfsigned
+    owner: vault
+    group: vault
+  when: ansible_distribution in ['Alpine']
+
+# Import S3 and temp vault certificates to trust store
+#- name: Install | OpenSSL | Import S3 CA certificate.
+#  ansible.builtin.copy:
+#    src: nas-ca.crt
+#    dest: '{{ dist_nasca_dest[ansible_distribution] }}'
+#    owner: root
+#    group: root
+#    mode: 0640
+
+- name: Install | OpenSSL | Import Vault certificate.
+  ansible.builtin.copy:
+    src: '{{ consul_cert_path }}'
+    dest: '{{ dist_vaulttls_dest[ansible_distribution] }}'
+    owner: root
+    group: root
+    mode: 0640
+    remote_src: true
+
+- name: Install | OpenSSL | Update trust store.
+  ansible.builtin.command: '{{ dist_update_cert[ansible_distribution] }}'
+
+# Install vault
+- name: Install | Vault | Get vault binary.
+  ansible.builtin.get_url:
+    url: "https://releases.hashicorp.com/vault/{{ vault_ver }}/vault_{{ vault_ver }}_linux_amd64.zip"
+    dest: /tmp/vault.zip
+    owner: root
+    group: root
+    mode: 0755
+  delegate_to: localhost
+
+- name: Install | Vault | Downloads cooldown.
+  ansible.builtin.pause:
+    seconds: 5
+  when: ansible_distribution in ['Alpine']
+
+- name: Install | Vault | Unzip archive package.
+  ansible.builtin.unarchive:
+    src: /tmp/vault.zip
+    dest: /usr/sbin
+    owner: root
+    group: root
+    mode: 0755
+    remote_src: false
+  when: ansible_distribution in ['Alpine']
+
+- name: Install | Vault | Copy openrc service file.
+  ansible.builtin.copy:
+    src: openrc-vault
+    dest: /etc/init.d/vault
+    owner: root
+    group: root
+    mode: 0755
+  when: ansible_distribution in ['Alpine']
+
+- name: Install | Vault | Import initial config file.
+  ansible.builtin.template:
+    src: vault-config.hcl.j2
+    dest: /etc/vault.d/vault.hcl
+    owner: vault
+    group: vault
+    mode: 0640
+  notify: restart-vault
+
+# Force handlers to run
+- name: Install | Handlers | Force handlers to run.
+  meta: flush_handlers

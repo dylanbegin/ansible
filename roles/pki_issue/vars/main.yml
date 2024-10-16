@@ -1,0 +1,53 @@
+# roles/pki_issue/vars/main.yml
+# All vault variables.
+
+# consul-template APK dependencies
+consul_deps_apk:
+  - ca-certificates
+  - jq
+  - openssl
+  - unzip
+
+# consul-template APT dependencies
+consul_deps_apt:
+  - ca-certificates
+  - jq
+  - openssl
+  - unzip
+
+# consul-template RPM dependencies
+consul_deps_dnf:
+  - ca-certificates
+  - jq
+  - openssl
+  - unzip
+
+# Distro variables
+dist_vaultica_dest:
+  Alpine: /usr/local/share/ca-certificates/vault-ica.crt
+  Debian: /usr/local/share/ca-certificates/vault-ica.crt
+  Ubuntu: /usr/local/share/ca-certificates/vault-ica.crt
+  Alma: /etc/pki/ca-trust/source/anchors/vault-ica.crt
+  CentOS: /etc/pki/ca-trust/source/anchors/vault-ica.crt
+  Fedora: /etc/pki/ca-trust/source/anchors/vault-ica.crt
+  Rocky: /etc/pki/ca-trust/source/anchors/vault-ica.crt
+
+dist_update_cert:
+  Alpine: update-ca-certificates
+  Debian: update-ca-certificates
+  Ubuntu: update-ca-certificates
+  Alma: update-ca-trust
+  CentOS: update-ca-trust
+  Fedora: update-ca-trust
+  Rocky: update-ca-trust
+
+# Vault config vars
+vault_fqdn: vault.cryogence.org
+vault_log_level: info
+ca_role_name: role-cryogence-org
+local_user: cadmin
+
+# Consul vars
+consul_template_ver: 0.39.1
+consul_key_path: /etc/consul-template.d/server.key
+consul_cert_path: /etc/consul-template.d/server.crt

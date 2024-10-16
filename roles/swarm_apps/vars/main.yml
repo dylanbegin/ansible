@@ -1,0 +1,15 @@
+# roles/swarm_apps/vars/main.yml
+# All swarm app/stack variables.
+
+ansible_path: ~/build/ansible
+# traefik vars
+acme_email: dbegin@protonmail.com
+# I run split-brain dns over vpn; you will most likely want
+# to set this to an external provider (1.1.1.1:53)
+acme_dns: 10.10.10.1:53
+
+# server vars
+s3_server_external: s3.cryogence.net
+s3_console_server_external: console.s3.cryogence.net
+s3_server_internal: "https://10.10.10.31:9000"
+s3_console_server_internal: "https://10.10.10.31:9002"

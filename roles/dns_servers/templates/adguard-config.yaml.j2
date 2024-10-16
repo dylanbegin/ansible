@@ -1,0 +1,190 @@
+#; /etc/adguard/conf/AdGuardHome.yaml
+#; Customized AdGuardHome config file.
+#; ref: https://github.com/AdguardTeam/AdGuardHome/wiki/Configuration
+#; ref: https://pastebin.com/raw/WcSALFS6
+---
+
+http:
+  pprof:
+    port: {{ ag_http_pprof_port }}
+    enabled: {{ ag_http_pprof_enabled }}
+  address: {{ ansible_default_ipv4.address }}:80
+  session_ttl: {{ ag_http_session_ttl }}
+users:
+  - name: {{ ag_users_username }}
+    password: {{ ag_users_password }}
+auth_attempts: {{ ag_auth_attemps }}
+block_auth_min: {{ ag_block_auth_time }}
+http_proxy: {{ ag_http_proxy }}
+language: {{ ag_language }}
+theme: {{ ag_theme }}
+dns:
+  bind_hosts:
+{% for bind_list in ag_dns_bind_hosts %}
+    - {{ bind_list }}
+{% endfor %}
+  port: {{ ag_dns_bind_port }}
+  anonymize_client_ip: {{ ag_dns_anonymize_client_ip }}
+  ratelimit: {{ ag_dns_ratelimit }}
+  ratelimit_subnet_len_ipv4: {{ ag_dns_ratelimit_subnet_len_ipv4 }}
+  ratelimit_subnet_len_ipv6: {{ ag_dns_ratelimit_subnet_len_ipv6 }}
+  ratelimit_whitelist: {{ ag_dns_ratelimit_whitelist }}
+  refuse_any: {{ ag_dns_refuse_any }}
+  upstream_dns:
+{% for up_dns in ag_dns_upstream_dns %}
+    - {{ up_dns }}
+{% endfor %}
+  upstream_dns_file: {{ ag_dns_upstream_dns_file }}
+  bootstrap_dns:
+{% for boot_dns_ip in ag_dns_bootstrap_dns %}
+    - {{ boot_dns_ip }}
+{% endfor %}
+  fallback_dns:
+{% for backup_dns in ag_dns_fallback_dns %}
+    - {{ backup_dns }}
+{% endfor %}
+  all_servers: {{ ag_dns_all_servers }}
+  fastest_addr: {{ ag_dns_fastest_addr }}
+  fastest_timeout: {{ ag_dns_fastest_timeout }}
+  allowed_clients: {{ ag_dns_allowed_clients }}
+  disallowed_clients: {{ ag_dns_disallowed_clients }}
+  blocked_hosts:
+{% for block_dns in ag_dns_blocked_hosts %}
+    - {{ block_dns }}
+{% endfor %}
+  trusted_proxies:
+{% for dns_trusted_prox in ag_dns_trusted_proxies %}
+    - {{ dns_trusted_prox }}
+{% endfor %}
+  cache_size: {{ ag_dns_cache_size }}
+  cache_ttl_min: {{ ag_dns_cache_ttl_min }}
+  cache_ttl_max: {{ ag_dns_cache_ttl_max }}
+  cache_optimistic: {{ ag_dns_cache_optimistic }}
+  bogus_nxdomain: {{ ag_dns_bogus_nxdomain }}
+  aaaa_disabled: {{ ag_dns_aaaa_disabled }}
+  enable_dnssec: {{ ag_dns_enable_dnssec }}
+  edns_client_subnet:
+    custom_ip: {{ ag_dns_edns_client_subnet_custom_ip }}
+    enabled: {{ ag_dns_edns_client_subnet_enabled }}
+    use_custom: {{ ag_dns_edns_client_subnet_use_custom }}
+  max_goroutines: {{ ag_dns_max_goroutines }}
+  handle_ddr: {{ ag_dns_handle_ddr }}
+  ipset: {{ ag_dns_ipset }}
+  ipset_file: {{ ag_dns_ipset_file }}
+  bootstrap_prefer_ipv6: {{ ag_dns_bootstrap_prefer_ipv6 }}
+  upstream_timeout: {{ ag_dns_upstream_timeout }}
+  private_networks:
+{% for ip_cidr in ag_dns_private_networks %}
+    - {{ ip_cidr }}
+{% endfor %}
+  use_private_ptr_resolvers: {{ ag_dns_use_private_ptr_resolvers }}
+  local_ptr_upstreams:
+{% for ptr_upstream in ag_dns_local_ptr_upstreams %}
+    - {{ ptr_upstream }}
+{% endfor %}
+  use_dns64: {{ ag_dns_use_dns64 }}
+  dns64_prefixes: {{ ag_dns_dns64_prefixes }}
+  serve_http3: {{ ag_dns_serve_http3 }}
+  use_http3_upstreams: {{ ag_dns_use_http3_upstreams }}
+  serve_plain_dns: {{ ag_dns_serve_plain_dns }}
+tls:
+  enabled: {{ ag_tls_enabled }}
+  server_name: "{{ ansible_fqdn }}"
+  force_https: {{ ag_tls_force_https }}
+  port_https: {{ ag_tls_port_https }}
+  port_dns_over_tls: {{ ag_tls_port_dns_over_tls }}
+  port_dns_over_quic: {{ ag_tls_port_dns_over_quic }}
+  port_dnscrypt: {{ ag_tls_port_dnscrypt }}
+  dnscrypt_config_file: {{ ag_tls_dnscrypt_config_file }}
+  allow_unencrypted_doh: {{ ag_tls_allow_unencrypted_doh }}
+  certificate_chain: {{ ag_tls_certificate_chain }}
+  private_key: {{ ag_tls_private_key }}
+  certificate_path: {{ ag_tls_certificate_path }}
+  private_key_path: {{ ag_tls_private_key_path }}
+  strict_sni_check: {{ ag_tls_strict_sni_check}}
+querylog:
+  ignored: {{ ag_querylog_ignored }}
+  interval: {{ ag_querylog_interval }}
+  size_memory: {{ ag_querylog_size_memory }}
+  enabled: {{ ag_querylog_enabled }}
+  file_enabled: {{ ag_querylog_file_enabled }}
+statistics:
+  ignored: {{ ag_statistics_ignored }}
+  interval: {{ ag_statistics_interval }}
+  enabled: {{ ag_statistics_enabled }}
+filters:
+{% for filter in filters %}
+  - enabled: {{ filter.enabled }}
+    url: {{ filter.url }}
+    name: {{ filter.name }}
+    id: {{ filter.id }}
+{% endfor %}
+whitelist_filters: {{ ag_filters_whitelist_filters }}
+ag_filters_user_rules: {{ ag_filters_user_rules }}
+dhcp:
+  enabled: {{ ag_dhcp_enabled }}
+  interface_name: {{ ag_dhcp_interface_name }}
+  local_domain_name: {{ ag_dhcp_local_domain_name }}
+  dhcpv4:
+    gateway_ip: {{ ag_dhcp_dhcpv4_gateway_ip }}
+    subnet_mask: {{ ag_dhcp_dhcpv4_subnet_mask }}
+    range_start: {{ ag_dhcp_dhcpv4_range_start }}
+    range_end: {{ ag_dhcp_dhcpv4_range_end }}
+    lease_duration: {{ ag_dhcp_dhcpv4_lease_duration }}
+    icmp_timeout_msec: {{ ag_dhcp_dhcpv4_icmp_timeout_msec }}
+    options: {{ ag_dhcp_dhcpv4_options }}
+  dhcpv6:
+    range_start: {{ ag_dhcp_dhcpv6_range_start }}
+    lease_duration: {{ ag_dhcp_dhcpv6_lease_duration }}
+    ra_slaac_only: {{ ag_dhcp_dhcpv6_ra_slaac_only }}
+    ra_allow_slaac: {{ ag_dhcp_dhcpv6_ra_allow_slaac }}
+filtering:
+  blocking_ipv4: {{ ag_filtering_blocking_ipv4 }}
+  blocking_ipv6: {{ ag_filtering_blocking_ipv6 }}
+  blocked_services:
+    schedule:
+      time_zone: Local
+    ids: {{ ag_filtering_blocked_services }}
+  safe_search:
+    enabled: {{ ag_filtering_safe_search_enabled }}
+    bing: {{ ag_filtering_safe_search_bing }}
+    duckduckgo: {{ ag_filtering_safe_search_ddg }}
+    google: {{ ag_filtering_safe_search_google }}
+    pixabay: {{ ag_filtering_safe_search_pixabay }}
+    yandex: {{ ag_filtering_safe_search_yandex }}
+    youtube: {{ ag_filtering_safe_search_youtube }}
+  blocking_mode: {{ ag_filtering_blocking_mode }}
+  parental_block_host: {{ ag_filtering_parental_block_host }}
+  safebrowsing_block_host: {{ ag_filtering_safebrowsing_block_host }}
+  rewrites: {{ ag_filtering_rewrites }}
+  safebrowsing_cache_size: {{ ag_filtering_safebrowsing_cache_size }}
+  safesearch_cache_size: {{ ag_filtering_safesearch_cache_size }}
+  parental_cache_size: {{ ag_filtering_parental_cache_size }}
+  cache_time: {{ ag_filtering_cache_time }}
+  filters_update_interval: {{ ag_filtering_filters_update_interval }}
+  blocked_response_ttl: {{ ag_filtering_blocked_response_ttl }}
+  filtering_enabled: {{ ag_filtering_filtering_enabled }}
+  parental_enabled: {{ ag_filtering_parental_enabled }}
+  safebrowsing_enabled: {{ ag_filtering_safebrowsing_enabled }}
+  protection_enabled: {{ ag_filtering_protection_enabled }}
+clients:
+  runtime_sources:
+    whois: {{ ag_clients_runtime_sources_whois }}
+    arp: {{ ag_clients_runtime_sources_arp }}
+    rdns: {{ ag_clients_runtime_sources_rdns }}
+    dhcp: {{ ag_clients_runtime_sources_dhcp }}
+    hosts: {{ ag_clients_runtime_sources_hosts }}
+  persistent: {{ ag_clients_persistent }}
+log:
+  file: {{ ag_log_file }}
+  local_time: {{ ag_log_local_time }}
+  max_backups: {{ ag_log_max_backups }}
+  max_size: {{ ag_log_max_size }}
+  max_age: {{ ag_log_max_age }}
+  compress: {{ ag_log_compress }}
+  verbose: {{ ag_log_verbose }}
+os:
+  group: {{ ag_os_group }}
+  user: {{ ag_os_user }}
+  rlimit_nofile: {{ ag_os_rlimit_nofile }}
+schema_version: {{ ag_schema_version }}

@@ -1,0 +1,5 @@
+# roles/base/vars/main.yml
+# All base variables.
+
+ansible_path: ~/build/ansible
+local_user: cadmin

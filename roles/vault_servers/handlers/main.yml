@@ -1,0 +1,38 @@
+# roles/vault_servers/handlers/main.yml
+# Handling all services.
+
+- name: restart-cloudinit
+  ansible.builtin.service:
+    name: cloud-init
+    state: restarted
+    enabled: true
+
+- name: restart-iptables
+  ansible.builtin.service:
+    name: iptables
+    state: restarted
+    enabled: true
+
+- name: restart-firewalld
+  ansible.builtin.service:
+    name: firewalld
+    state: restarted
+    enabled: true
+
+- name: restart-consul
+  ansible.builtin.service:
+    name: consul-template
+    state: restarted
+    enabled: true
+
+- name: restart-vault
+  ansible.builtin.service:
+    name: vault
+    state: restarted
+    enabled: true
+
+- name: restart-vault-unseal
+  ansible.builtin.service:
+    name: vault-unseal
+    state: restarted
+    enabled: true

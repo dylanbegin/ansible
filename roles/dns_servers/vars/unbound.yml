@@ -1,0 +1,196 @@
+# roles/dns_servers/vars/unbound.yml
+# unbound vars file
+# ref: https://unbound.docs.nlnetlabs.nl/en/latest/manpages/unbound.conf.html
+# Ref: https://pastebin.com/raw/M2tHrrF5
+
+# Server config
+server_config:
+  # General
+  edns-tcp-keepalive: "yes"
+  edns-buffer-size: 1472
+  root-hints: "/etc/unbound/root.hints"
+  # Network
+  interface: 127.0.0.1
+  interface-automatic: "no"
+  ip-transparent: "yes"
+  port: 5335
+  do-ip4: "yes"
+  do-ip6: "no"
+  do-tcp: "yes"
+  do-udp: "yes"
+  # Logging
+  verbosity: 1
+  val-log-level: 1
+  # Security
+  access-control: "127.0.0.0/8 allow"
+  aggressive-nsec: "yes"
+  deny-any: "yes"
+  harden-dnssec-stripped: "yes"
+  harden-glue: "yes"
+  ipsecmod-enabled: "no"
+  minimal-responses: "yes"
+  qname-minimisation: "yes"
+  serve-expired: "no"
+  serve-expired-ttl: 14400
+  use-caps-for-id: "no"
+  unwanted-reply-threshold: 10000000
+  val-clean-additional: "yes"
+  val-permissive-mode: "no"
+  # Performance
+  cache-min-ttl: 10
+  cache-max-ttl: 86400
+  incoming-num-tcp: 10
+  infra-cache-slabs: 8
+  key-cache-slabs: 8
+  max-udp-size: 3072
+  msg-cache-size: 20m
+  msg-cache-slabs: 8
+  num-threads: 4
+  num-queries-per-thread: 512
+  outgoing-num-tcp: 10
+  prefetch: "yes"
+  prefetch-key: "yes"
+  rrset-cache-size: 256m
+  rrset-cache-slabs: 8
+  rrset-roundrobin: "yes"
+  so-rcvbuf: 8m
+  so-reuseport: "yes"
+
+# Managed zones caching
+dns_zone_ttl: 3600
+
+# Forward DNS servers
+dns_fwd_server:
+  - 10.10.10.1
+
+# DNS managed zones
+dns_internal_zones:
+  - cryogence.org
+  - cryogence.io
+  - cryogence.net
+
+# List all internal DNS A records
+dns_local_records:
+  # VM and servers
+  - fqdn: fwl.cryogence.org    #firewall
+    ip: 10.10.10.1
+  - fqdn: odin.cryogence.org   #controller
+    ip: 10.10.10.5
+  - fqdn: swt1.cryogence.org   #switch
+    ip: 10.10.10.11
+  - fqdn: swt2.cryogence.org   #switch
+    ip: 10.10.10.12
+  - fqdn: swt3.cryogence.org   #switch
+    ip: 10.10.10.13
+  - fqdn: dns1.cryogence.org   #dns
+    ip: 10.10.10.21
+  - fqdn: dns2.cryogence.org   #dns
+    ip: 10.10.10.22
+  - fqdn: nas.cryogence.org    #nas
+    ip: 10.10.10.31
+  - fqdn: backup.cryogence.org #backup
+    ip: 10.10.10.32
+  - fqdn: vault.cryogence.org  #hc vault server
+    ip: 10.10.10.35
+  - fqdn: pve1.cryogence.org   #pve
+    ip: 10.10.10.41
+  - fqdn: pve2.cryogence.org   #pve
+    ip: 10.10.10.42
+  - fqdn: pve3.cryogence.org   #pve
+    ip: 10.10.10.43
+  - fqdn: pve9.cryogence.org   #pve
+    ip: 10.10.10.49
+  - fqdn: gpu1.cryogence.org   #pve
+    ip: 10.10.10.51
+  - fqdn: vip.cryogence.org    #k8s vip
+    ip: 10.10.10.60
+  - fqdn: k8s-m1.cryogence.org #k8s master
+    ip: 10.10.10.61
+  - fqdn: k8s-m2.cryogence.org #k8s master
+    ip: 10.10.10.62
+  - fqdn: k8s-m3.cryogence.org #k8s master
+    ip: 10.10.10.63
+  - fqdn: k8s-w1.cryogence.org #k8s worker
+    ip: 10.10.10.71
+  - fqdn: k8s-w2.cryogence.org #k8s worker
+    ip: 10.10.10.72
+  - fqdn: k8s-w3.cryogence.org #k8s worker
+    ip: 10.10.10.73
+  - fqdn: k8s-g1.cryogence.org #k8s gpu
+    ip: 10.10.10.81
+  - fqdn: swarm.cryogence.org  #docker swarm
+    ip: 10.10.10.90
+  - fqdn: game.cryogence.org   #game server
+    ip: 10.10.10.95
+  - fqdn: ap1.cryogence.org    #unifi ap
+    ip: 10.10.10.99
+  # Kubenetes ingress LBs
+  - fqdn: ingress.cryogence.org  #proxy ingress
+    ip: 10.10.10.100
+  - fqdn: wifi.cryogence.org     #unifi ingress
+    ip: 10.10.10.101
+  - fqdn: teleport.cryogence.org #proxy ingress
+    ip: 10.10.10.102
+
+# Zone for Kubernetes apps
+dns_zone_io_tld: cryogence.io
+dns_zone_io_ip: 10.10.10.100
+
+# cname records for .io apps
+dns_zone_io_subdomain:
+  - host: ai
+  - host: auth
+  - host: backup
+  - host: code
+  - host: dash
+  - host: dns
+  - host: drive
+  - host: ebs
+  - host: eks
+  - host: fwl
+  - host: game
+  - host: git
+  - host: home
+  - host: hubble
+  - host: iot
+  - host: lidarr
+  - host: music
+  - host: nas
+  - host: ops
+  - host: pass
+  - host: prowlarr
+  - host: proxy
+  - host: pve
+  - host: radarr
+  - host: rss
+  - host: sam
+  - host: sec
+  - host: sonarr
+  - host: sql
+  - host: ssh
+  - host: swt
+  - host: tor
+  - host: tv
+  - host: vault
+  - host: wifi
+  - host: wiki
+
+# Zone for swarm apps
+dns_zone_net_tld: cryogence.net
+dns_zone_net_ip: 10.10.10.90
+
+# cname records for .net apps
+dns_zone_net_subdomain:
+  - host: auth
+  - host: git
+  - host: proxy
+  - host: s3
+  - host: console.s3
+  - host: wiki
+
+
+#Remote control config
+remote_control:
+  control-enable: "no"
+
+# unbound is easy they said... small version of bind they said...

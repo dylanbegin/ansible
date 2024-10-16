@@ -1,0 +1,29 @@
+# roles/vault_servers/tasks/main.yml
+# Main task which fully sets up Hashicorp Vault.
+# Ref: https://github.com/ricsanfre/ansible-role-vault/tree/master
+
+# Include variables
+- name: Import | Include variable files.
+  ansible.builtin.include_vars:
+    dir: vars
+
+# Include vault secrets
+- name: Import | Include variable files.
+  ansible.builtin.include_vars:
+    file: /mnt/ark/build/secrets/vault-secrets.yml
+
+# Install Vault server
+- name: Call task | Deploy Vault server.
+  ansible.builtin.include_tasks: install.yml
+
+# Initialize and unseal Vault server
+- name: Call task | Initialize new Vault instance.
+  ansible.builtin.include_tasks: init.yml
+
+# Setup internal PKI root and intermediate CA's for Vault
+- name: Call task | Setup root and int CA's.
+  ansible.builtin.include_tasks: setup-pki.yml
+
+# Setup KV Secrets Engine for Vault
+- name: Call task | Generate all internal certificates and secrets.
+  ansible.builtin.include_tasks: setup-secrets.yml

@@ -1,0 +1,40 @@
+vault {
+  address = "https://{{ vault_fqdn }}:8200"
+  token = "{{ vault_certsrw_token.content }}"
+  renew_token = false
+
+  ssl {
+    verify = false
+  }
+  
+  retry {
+    enabled  = true
+    attempts = 5
+    backoff  = "250ms"
+  }
+}
+
+template {
+  source      = "/etc/consul-template.d/server-key.tpl"
+  destination = "{{ consul_key_path }}"
+  user        = "root"
+  group       = "root"
+  perms       = "0644"
+}
+
+template {
+  source      = "/etc/consul-template.d/server-certca.tpl"
+  destination = "{{ dist_vaultica_dest[ansible_distribution] }}"
+  user        = "root"
+  group       = "root"
+  perms       = "0600"
+  command     = "{{ dist_update_cert[ansible_distribution] }}"
+}
+
+template {
+  source      = "/etc/consul-template.d/server-cert.tpl"
+  destination = "{{ consul_cert_path }}"
+  user        = "root"
+  group       = "root"
+  perms       = "0644"
+}

@@ -1,0 +1,238 @@
+# roles/dns_servers/tasks/main.yml
+# Install DNS servers with Adguard Home and unbound DNS.
+
+# Include variables
+- name: Import | Include variable files.
+  ansible.builtin.include_vars:
+    dir: vars
+
+# temp fix for: https://gitlab.alpinelinux.org/alpine/cloud/alpine-cloud-images/-/issues/160
+- name: Temp fix | Manually set dns.
+  ansible.builtin.shell:
+    cmd: echo nameserver 10.10.10.1 > /etc/resolv.conf
+  when: ansible_distribution in ['Alpine']
+
+- name: Temp fix | Restart networking.
+  ansible.builtin.shell:
+    cmd: rc-service networking restart
+  when: ansible_distribution in ['Alpine']
+
+# Install dependencies
+- name: Deps | Install dependencies APK.
+  community.general.apk:
+    name: '{{ adguard_deps_apk }}'
+    state: latest
+    no_cache: true
+  when: ansible_distribution in ['Alpine']
+
+- name: Deps | Install dependencies APT.
+  ansible.builtin.apt:
+    name: '{{ adguard_deps_apt }}'
+    state: latest
+    update_cache: true
+  when: ansible_distribution in ['Debian', 'Ubuntu']
+
+- name: Deps | Install dependencies RPM.
+  ansible.builtin.dnf:
+    name: '{{ adguard_deps_dnf }}'
+    state: latest
+    update_cache: true
+  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+
+- name: Deps | Create application directories.
+  ansible.builtin.file:
+    path: '{{ item }}'
+    owner: root
+    group: root
+    mode: 0775
+    state: directory
+  with_items:
+    - /etc/consul-template.d
+    - /etc/unbound/zones
+    - /opt/AdGuardHome
+    - /var/lib/adguard
+
+# Disable SELinux. Issues with both adguard and unbound
+- name: SELinux | Modify SELinux file.
+  ansible.builtin.lineinfile:
+    path: /etc/selinux/config
+    regexp: '^SELINUX='
+    line: SELINUX=disabled
+  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+
+- name: SELinux | Disable SELinux.
+  ansible.builtin.command: setenforce 0
+  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+
+# Configure firewall
+- name: Firewall | Configure iptables rules.
+  ansible.builtin.template:
+    src: iptables.rules.j2
+    dest: /etc/iptables/iptables.rules
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart-iptables
+  when: ansible_distribution in ['Alpine', 'Debian', 'Ubuntu']
+
+- name: Firewall | Load firewall rules.
+  ansible.builtin.shell:
+    cmd: iptables-restore < /etc/iptables/iptables.rules
+  when: ansible_distribution in ['Alpine', 'Debian', 'Ubuntu']
+
+- name: Firewall | Write firewall rules to disk.
+  ansible.builtin.command:
+    cmd: rc-service iptables save
+  when: ansible_distribution in ['Alpine']
+
+- name: Firewall | Enable iptables service.
+  ansible.builtin.command:
+    cmd: rc-update add iptables
+  when: ansible_distribution in ['Alpine']
+
+- name: Firewall | Modify firewall default zone.
+  ansible.posix.firewalld:
+    zone: public
+    service: '{{ item }}'
+    state: enabled
+    permanent: true
+  loop:
+    - https
+    - dns
+    - dhcp
+  notify: restart-firewalld
+  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+
+- name: Firewall | Add adguard web port.
+  ansible.posix.firewalld:
+    zone: public
+    port: 3000/tcp
+    state: enabled
+    permanent: true
+  notify: restart-firewalld
+  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+
+# Configure local DNS
+- name: DNS | Replace cloud-init hosts file
+  ansible.builtin.template:
+    src: cloudinit-hosts.j2
+    dest: '{{ dist_cloudinit_dest[ansible_distribution] }}'
+    owner: root
+    group: root
+    mode: 0640
+  notify: restart-cloudinit
+
+# Setup unbound DNS
+- name: unbound | Get root hints file.
+  ansible.builtin.get_url:
+    url: https://www.internic.net/domain/named.root
+    dest: /etc/unbound/root.hints
+    owner: root
+    group: root
+    mode: 0664
+
+- name: unbound | Backup original config.
+  ansible.builtin.copy:
+    src: /etc/unbound/unbound.conf
+    dest: /etc/unbound/unbound.conf.bk
+    owner: unbound
+    group: unbound
+    mode: 0640
+    remote_src: true
+
+- name: unbound | Import config file.
+  ansible.builtin.template:
+    src: unbound.conf.j2
+    dest: /etc/unbound/unbound.conf
+    owner: unbound
+    group: unbound
+    mode: 0640
+  notify: restart-unbound
+
+# Temp self signed certificate setup. Will be replaced by consul pki role.
+# its a wierd chicken and egg situation but it works.
+- name: OpenSSL | Generate private ECC 384 key.
+  community.crypto.openssl_privatekey:
+    path: '{{ consul_key_path }}'
+    select_crypto_backend: cryptography
+    curve: secp384r1
+    type: ECC
+
+- name: OpenSSL | Generate CA CSR with Subject Information ECC 384.
+  community.crypto.openssl_csr:
+    path: /tmp/server-csr.csr
+    privatekey_path: '{{ consul_key_path }}'
+    select_crypto_backend: cryptography
+    organization_name: '{{ ca_org }}'
+    common_name: '{{ ansible_fqdn }}'
+    subject_alt_name:
+      - "DNS:{{ ansible_fqdn }}"
+
+- name: OpenSSL | Generate adguard private certificate ChaCha20 TLS1.3.
+  community.crypto.x509_certificate:
+    path: '{{ consul_cert_path }}'
+    privatekey_path: '{{ consul_key_path }}'
+    csr_path: /tmp/server-csr.csr
+    provider: selfsigned
+
+- name: OpenSSL | Update trust store.
+  ansible.builtin.command: '{{ dist_update_cert[ansible_distribution] }}'
+
+# Install adguard
+- name: adguard | Download archived binary package.
+  ansible.builtin.get_url:
+    url: https://static.adguard.com/adguardhome/release/AdGuardHome_linux_386.tar.gz
+    dest: /tmp/adguard.tar.gz
+    owner: root
+    group: root
+    mode: 0755
+
+- name: adguard | Downloads cooldown.
+  ansible.builtin.pause:
+    seconds: 5
+
+- name: adguard | Unzip archive package.
+  ansible.builtin.unarchive:
+    src: /tmp/adguard.tar.gz
+    dest: /opt/
+    owner: root
+    group: root
+    mode: 0755
+    remote_src: true
+
+- name: adguard | Set permissions for executable.
+  ansible.builtin.file:
+    path: /opt/AdGuardHome/AdGuardHome
+    owner: root
+    group: root
+    mode: 0755
+    state: file
+
+- name: adguard | Run installer.
+  ansible.builtin.command:
+    argv:
+      - /opt/AdGuardHome/AdGuardHome 
+      - -s
+      - install
+
+- name: adguard | Wait for rollout.
+  ansible.builtin.pause:
+    seconds: 10
+
+- name: adguard | Copy openrc service file.
+  ansible.builtin.copy:
+    src: openrc-adguard
+    dest: /etc/init.d/AdGuardHome
+    owner: root
+    group: root
+    mode: 0755
+  when: ansible_distribution in ['Alpine']
+
+- name: adguard | Copy config file.
+  ansible.builtin.template:
+    src: adguard-config.yaml.j2
+    dest: /opt/AdGuardHome/AdGuardHome.yaml
+    owner: root
+    group: root
+    mode: 0640
+  notify: restart-adguard

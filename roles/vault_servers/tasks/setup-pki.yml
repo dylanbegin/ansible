@@ -1,0 +1,245 @@
+# roles/vault_servers/tasks/setup-ca.yml
+# Setup internal PKI root and intermediate CA's for Vault.
+
+# Enable PKI engine for root intermediate ca
+- name: PKI | Setup | Enable PKI engine for root CA.
+  ansible.builtin.uri:
+    url: "https://{{ ansible_fqdn }}:8200/v1/sys/mounts/pki_root"
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body:
+      type: "pki"
+    body_format: json
+    method: POST
+    validate_certs: false
+    status_code:
+      - 200
+      - 204
+
+- name: PKI | Setup | Enable PKI engine for intermediate CA.
+  ansible.builtin.uri:
+    url: "https://{{ ansible_fqdn }}:8200/v1/sys/mounts/pki_int"
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body:
+      type: "pki"
+    body_format: json
+    method: POST
+    validate_certs: false
+    status_code:
+      - 200
+      - 204
+
+# Set certificate TTL for both CA's
+- name: PKI | TTL | Set certificate TTL for Root CA.
+  ansible.builtin.uri:
+    url: "https://{{ ansible_fqdn }}:8200/v1/sys/mounts/pki_root/tune"
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body:
+      max_lease_ttl: "87600h"
+    body_format: json
+    method: POST
+    validate_certs: false
+    status_code:
+      - 200
+      - 204
+
+- name: PKI | TTLS | Set certificate TTL for Int CA.
+  ansible.builtin.uri:
+    url: "https://{{ ansible_fqdn }}:8200/v1/sys/mounts/pki_int/tune"
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body:
+      max_lease_ttl: "87600h"
+    body_format: json
+    method: POST
+    validate_certs: false
+    status_code:
+      - 200
+      - 204
+
+# Generate Root CA certificate
+- name: PKI | Root CA | Generate Root CA certificate.
+  ansible.builtin.uri:
+    url: "https://{{ ansible_fqdn }}:8200/v1/pki_root/root/generate/internal"
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body:
+      common_name: "{{ ca_root_common_name }}"
+      issuer_name: "{{ ca_root_issue_name }}"
+      country: "{{ ca_country }}"
+      province: "{{ ca_state }}"
+      locality: "{{ ca_city }}"
+      organization: "{{ ca_org }}"
+      key_type: "{{ ca_key_type }}"
+      key_bits: "{{ ca_key_bits }}"
+      signature_bits: "{{ ca_sig_bits }}"
+      ttl: "87600h"
+    body_format: json
+    method: POST
+    validate_certs: false
+    status_code:
+      - 200
+      - 204
+
+- name: PKI | Root CA | Create Root CA role.
+  ansible.builtin.uri:
+    url: "https://{{ ansible_fqdn }}:8200/v1/pki_root/roles/{{ ca_root_issue_name }}"
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+      X-Vault-Request: true
+    body:
+      allow_any_name: "true"
+      issuer_ref: "{{ ca_root_issue_name }}"
+      country: "{{ ca_country }}"
+      province: "{{ ca_state }}"
+      locality: "{{ ca_city }}"
+      organization: "{{ ca_org }}"
+      key_type: "{{ ca_key_type }}"
+      key_bits: "{{ ca_key_bits }}"
+      signature_bits: "{{ ca_sig_bits }}"
+    body_format: json
+    method: PUT
+    validate_certs: false
+    status_code:
+      - 200
+      - 204
+
+- name: PKI | Root CA | Configure Root CA and CRL URLs.
+  ansible.builtin.uri:
+    url: "https://{{ ansible_fqdn }}:8200/v1/pki_root/root/generate/internal"
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+      X-Vault-Request: true
+    body:
+      issuing_certificates: "https://{{ ansible_fqdn }}:8200/v1/pki_root/ca"
+      crl_distribution_points: "https://{{ ansible_fqdn }}:8200/v1/pki_root/crl"
+    body_format: json
+    method: POST
+    validate_certs: false
+    status_code:
+      - 200
+      - 204
+
+# Generate Intermediate CA certificate
+- name: PKI | Int CA | Generate Intermediate certificate.
+  ansible.builtin.uri:
+    url: "https://{{ ansible_fqdn }}:8200/v1/pki_int/intermediate/generate/internal"
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body:
+      common_name: "{{ ca_int_common_name }}"
+      issuer_name: "{{ ca_int_issue_name }}"
+      country: "{{ ca_country }}"
+      province: "{{ ca_state }}"
+      locality: "{{ ca_city }}"
+      organization: "{{ ca_org }}"
+      key_type: "{{ ca_key_type }}"
+      key_bits: "{{ ca_key_bits }}"
+      signature_bits: "{{ ca_sig_bits }}"
+      ttl: "87600h"
+    body_format: json
+    method: POST
+    validate_certs: false
+    status_code:
+      - 200
+      - 204
+  register: pki_int_csr_response
+
+- name: PKI | Int CA | Sign Intermediate CA with Root cert.
+  ansible.builtin.uri:
+    url: "https://{{ ansible_fqdn }}:8200/v1/pki_root/root/sign-intermediate"
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body:
+      csr: "{{ pki_int_csr_response.json.data.csr }}"
+      format: "pem_bundle"
+      ttl: "87600h"
+    body_format: json
+    method: POST
+    validate_certs: false
+    status_code:
+      - 200
+      - 204
+  register: pki_int_pem_response
+
+- name: PKI | Int CA | Save Intermediate CA certificate.
+  ansible.builtin.copy:
+    content: "{{ pki_int_pem_response.json.data.certificate }}"
+    dest: /opt/vault/vault-ica.crt
+    owner: vault
+    group: vault
+    mode: 0644
+
+- name: PKI | Int CA | Save Intermediate CA certificate to controller.
+  ansible.builtin.copy:
+    content: "{{ pki_int_pem_response.json.data.certificate }}"
+    dest: "/home/{{ local_user }}/vault-ica.crt"
+    owner: "{{ local_user }}"
+    group: "{{ local_user }}"
+    mode: 0600
+  delegate_to: localhost
+
+- name: PKI | Int CA | Submit signed Intermediate CA certificate.
+  ansible.builtin.uri:
+    url: https://{{ ansible_fqdn }}:8200/v1/pki_int/intermediate/set-signed
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body:
+      certificate: "{{ pki_int_pem_response.json.data.certificate }}"
+    body_format: json
+    method: POST
+    validate_certs: false
+    status_code:
+      - 200
+      - 204
+
+- name: PKI | Int CA | Import content of Intermediate CA to cert file.
+  ansible.builtin.copy:
+    content: "{{ pki_int_pem_response.json.data.certificate }}"
+    dest: '{{ dist_vaultica_dest[ansible_distribution] }}'
+    owner: root
+    group: root
+    mode: 0640
+
+- name: PKI | Int CA | Update OpenSSL trust store.
+  ansible.builtin.command: '{{ dist_update_cert[ansible_distribution] }}'
+
+# Generate role for issuing certificates
+- name: PKI | Int CA Role | Get issuing certificate.
+  ansible.builtin.uri:
+    url: "https://{{ ansible_fqdn }}:8200/v1/pki_int/config/issuers"
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body_format: json
+    method: GET
+    validate_certs: false
+    status_code:
+      - 200
+      - 204
+  register: pki_int_issue_response
+
+- name: PKI | Int CA Role | Generate role for issuing certificates.
+  ansible.builtin.uri:
+    url: "https://{{ ansible_fqdn }}:8200/v1/pki_int/roles/{{ ca_role_name }}"
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body:
+      allowed_domains: "{{ ca_domain }}"
+      allow_subdomains: true
+      issuer_ref: "{{ pki_int_issue_response.json.data.default }}"
+      country: "{{ ca_country }}"
+      province: "{{ ca_state }}"
+      locality: "{{ ca_city }}"
+      organization: "{{ ca_org }}"
+      key_type: "{{ ca_key_type }}"
+      key_bits: "{{ ca_key_bits }}"
+      signature_bits: "{{ ca_sig_bits }}"
+      max_ttl: "87600h"
+    body_format: json
+    method: POST
+    validate_certs: false
+    status_code:
+      - 200
+      - 204

@@ -1,0 +1,38 @@
+# roles/dns_servers/handlers/main.yml
+# Handling all services.
+
+- name: restart-cloudinit
+  ansible.builtin.service:
+    name: cloud-init
+    state: restarted
+    enabled: true
+
+- name: restart-iptables
+  ansible.builtin.service:
+    name: iptables
+    state: restarted
+    enabled: true
+
+- name: restart-firewalld
+  ansible.builtin.service:
+    name: firewalld
+    state: restarted
+    enabled: true
+
+- name: restart-unbound
+  ansible.builtin.service:
+    name: unbound
+    state: restarted
+    enabled: true
+
+- name: restart-consul
+  ansible.builtin.service:
+    name: consul-template
+    state: restarted
+    enabled: true
+
+- name: restart-adguard
+  ansible.builtin.service:
+    name: AdGuardHome
+    state: restarted
+    enabled: true

@@ -1,0 +1,25 @@
+#!/sbin/openrc-run
+description="consul-template Vault"
+command="/usr/sbin/consul-template"
+command_args="${OPTIONS} -config='/etc/consul-template.d/pki-config.hcl'"
+command_background=true
+pidfile="/run/${RC_SVCNAME}.pid"
+retry="SIGINT/60"
+
+start_stop_daemon_args="--user ${USER:-root}"
+
+depend() {
+  need net
+}
+
+stop() {
+  ebegin "Stopping ${RC_SVCNAME}"
+  start-stop-daemon --stop --exec ${command} \
+  --pidfile "${pidfile}" --quiet
+  eend $?
+}
+
+restart() {
+  svc_stop
+  svc_start
+}

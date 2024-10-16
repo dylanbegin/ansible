@@ -1,0 +1,145 @@
+# roles/vault_servers/vars/main.yml
+# All vault variables.
+
+#Vault APK dependencies
+vault_deps_apk:
+  - ca-certificates
+  - curl
+  - iptables
+  - jq
+  - py3-cryptography
+  - openssl
+  - unzip
+
+# Vault APT dependencies
+vault_deps_apt:
+  - ca-certificates
+  - iptables
+  - jq
+  - openssl
+  - unzip
+  - vault
+
+# Vault RPM dependencies
+vault_deps_dnf:
+  - ca-certificates
+  - firewalld
+  - jq
+  - openssl
+  - unzip
+  - vault
+
+# Distro variables
+dist_cloudinit_dest:
+  Alpine: /etc/cloud/templates/hosts.alpine.tmpl
+  Debian: /etc/cloud/templates/hosts.debian.tmpl
+  Ubuntu: /etc/cloud/templates/hosts.debian.tmpl
+  Alma: /etc/cloud/templates/hosts.redhat.tmpl
+  CentOS: /etc/cloud/templates/hosts.redhat.tmpl
+  Fedora: /etc/cloud/templates/hosts.redhat.tmpl
+  Rocky: /etc/cloud/templates/hosts.redhat.tmpl
+
+dist_nasca_dest:
+  Alpine: /usr/local/share/ca-certificates/nas-ca.crt
+  Debian: /usr/local/share/ca-certificates/nas-ca.crt
+  Ubuntu: /usr/local/share/ca-certificates/nas-ca.crt
+  Alma: /etc/pki/ca-trust/source/anchors/nas-ca.crt
+  CentOS: /etc/pki/ca-trust/source/anchors/nas-ca.crt
+  Fedora: /etc/pki/ca-trust/source/anchors/nas-ca.crt
+  Rocky: /etc/pki/ca-trust/source/anchors/nas-ca.crt
+
+dist_vaultica_dest:
+  Alpine: /usr/local/share/ca-certificates/vault-ica.crt
+  Debian: /usr/local/share/ca-certificates/vault-ica.crt
+  Ubuntu: /usr/local/share/ca-certificates/vault-ica.crt
+  Alma: /etc/pki/ca-trust/source/anchors/vault-ica.crt
+  CentOS: /etc/pki/ca-trust/source/anchors/vault-ica.crt
+  Fedora: /etc/pki/ca-trust/source/anchors/vault-ica.crt
+  Rocky: /etc/pki/ca-trust/source/anchors/vault-ica.crt
+
+dist_vaulttls_dest:
+  Alpine: /usr/local/share/ca-certificates/vault.crt
+  Debian: /usr/local/share/ca-certificates/vault.crt
+  Ubuntu: /usr/local/share/ca-certificates/vault.crt
+  Alma: /etc/pki/ca-trust/source/anchors/vault.crt
+  CentOS: /etc/pki/ca-trust/source/anchors/vault.crt
+  Fedora: /etc/pki/ca-trust/source/anchors/vault.crt
+  Rocky: /etc/pki/ca-trust/source/anchors/vault.crt
+
+dist_update_cert:
+  Alpine: update-ca-certificates
+  Debian: update-ca-certificates
+  Ubuntu: update-ca-certificates
+  Alma: update-ca-trust
+  CentOS: update-ca-trust
+  Fedora: update-ca-trust
+  Rocky: update-ca-trust
+
+dist_consul_cmd:
+  Alpine: "openrc vault restart"
+  Debian: "systemctl reload vault"
+  Ubuntu: "systemctl reload vault"
+  Alma: "systemctl reload vault"
+  CentOS: "systemctl reload vault"
+  Fedora: "systemctl reload vault"
+  Rocky: "systemctl reload vault"
+
+# iptables allow ports
+inbound_udp_allow:
+  - 8200 #vault api
+inbound_tcp_allow:
+  - 22   #ssh
+  - 443  #https
+  - 8200 #vault api
+  - 8201 #vault cluster
+  - 8125 #vault telementry
+
+# Vault config vars
+vault_ver: 1.17.5
+vault_log_level: info
+
+# Vault policies
+vault_policy:
+  - name: certs-rw
+    hcl: |
+      path "sys/mounts" {
+        capabilities = [ "read", "list" ]
+      }
+      path "pki*" {
+        capabilities = [ "create", "read", "update", "delete", "list", "sudo", "patch" ]
+      }
+  - name: secrets-rw
+    hcl: |
+      path "sys/mounts" {
+        capabilities = [ "read" ]
+      }
+      path "secrets*" {
+        capabilities = [ "create", "read", "update", "delete", "list" ]
+      }
+      path "sys/policies/acl/*" {
+        capabilities = [ "create", "read", "update", "delete", "list" ]
+      }
+      path "auth/token/create" {
+          capabilities = [ "create", "update", "sudo" ]
+      }
+
+# PKI certificate vars
+ca_domain: cryogence.org
+ca_country: US
+ca_state: CA
+ca_city: San Diego
+ca_org: Cryogence
+ca_email: svccert@cryogence.org
+ca_key_type: ec
+ca_key_bits: 384
+ca_sig_bits: 384
+ca_root_common_name: Cryogence-org_Root_CA
+ca_root_issue_name: root-ca1
+ca_int_common_name: Cryogence-org_ICA-1
+ca_int_issue_name: cryogence-org-ica1
+ca_role_name: role-cryogence-org
+
+# Consul vars
+consul_template_ver: 0.39.1
+consul_key_path: /opt/vault/tls/tls.key
+consul_cert_path: /opt/vault/tls/tls.crt

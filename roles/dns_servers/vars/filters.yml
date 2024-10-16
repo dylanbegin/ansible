@@ -1,0 +1,239 @@
+# roles/dns_servers/vars/filters.yml
+# This is the source of all adblock list.
+# Ref: https://firebog.net/
+
+filters:
+# Suspicious Lists
+  - id: 1
+    url: https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts
+    enabled: "true"
+    name: stevenblacks hosts adlist
+
+  - id: 2
+    url: https://raw.githubusercontent.com/PolishFiltersTeam/KADhosts/master/KADhosts.txt
+    enabled: "true"
+    name: PolishFiltersTeam KADhosts
+
+  - id: 3
+    url: https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Spam/hosts
+    enabled: "true"
+    name: Fademinds Spammers
+
+  - id: 4
+    url: https://v.firebog.net/hosts/static/w3kbl.txt
+    enabled: "true"
+    name: WaLLy3Ks Blacklist
+
+  - id: 5
+    url: https://raw.githubusercontent.com/matomo-org/referrer-spam-blacklist/master/spammers.txt
+    enabled: "true"
+    name: Matomo Referrer Spam
+
+  - id: 6
+    url: https://someonewhocares.org/hosts/zero/hosts
+    enabled: "true"
+    name: Someone Who Cares
+
+  - id: 7
+    url: https://raw.githubusercontent.com/VeleSila/yhosts/master/hosts
+    enabled: "true"
+    name: VeleSila yhosts
+
+  - id: 8
+    url: https://winhelp2002.mvps.org/hosts.txt
+    enabled: "true"
+    name: Winhelp2002 MVPS
+
+  - id: 9
+    url: https://v.firebog.net/hosts/neohostsbasic.txt
+    enabled: "true"
+    name: neoFelhzs neoHosts
+
+  - id: 10
+    url: https://raw.githubusercontent.com/RooneyMcNibNug/pihole-stuff/master/SNAFU.txt
+    enabled: "true"
+    name: RooneyMcNibNugs SNAFU list
+
+  - id: 11
+    url: https://paulgb.github.io/BarbBlock/blacklists/hosts-file.txt
+    enabled: "true"
+    name: paulgbs BarbBlock
+
+# Advertising Lists
+  - id: 12
+    url: https://adaway.org/hosts.txt
+    enabled: "true"
+    name: AdAway
+
+  - id: 13
+    url: https://v.firebog.net/hosts/AdguardDNS.txt
+    enabled: "true"
+    name: Adguard DNS
+
+  - id: 14
+    url: https://v.firebog.net/hosts/Admiral.txt
+    enabled: "true"
+    name: LanikSJs Admiral Anti-Adblock
+
+  - id: 15
+    url: https://raw.githubusercontent.com/anudeepND/blacklist/master/adservers.txt
+    enabled: "true"
+    name: Anudeep NDs Blacklist
+
+  - id: 16
+    url: https://s3.amazonaws.com/lists.disconnect.me/simple_ad.txt
+    enabled: "true"
+    name: Disconnect Ads
+
+  - id: 17
+    url: https://v.firebog.net/hosts/Easylist.txt
+    enabled: "true"
+    name: Easylist
+
+  - id: 18
+    url: https://pgl.yoyo.org/adservers/serverlist.php?hostformat=hosts&showintro=0&mimetype=plaintext
+    enabled: "true"
+    name: Peter Lowes Adservers
+
+  - id: 19
+    url: https://raw.githubusercontent.com/FadeMind/hosts.extras/master/UncheckyAds/hosts
+    enabled: "true"
+    name: Fademinds Unchecky Ads
+
+  - id: 20
+    url: https://raw.githubusercontent.com/bigdargon/hostsVN/master/hosts
+    enabled: "true"
+    name: hostsVN
+
+  - id: 21
+    url: https://raw.githubusercontent.com/jdlingyu/ad-wars/master/hosts
+    enabled: "true"
+    name: Jdlingyus Ad-wars
+
+# Tracking & Telemetry Lists
+  - id: 22
+    url: https://v.firebog.net/hosts/Easyprivacy.txt
+    enabled: "true"
+    name: Easyprivacy
+
+  - id: 23
+    url: https://v.firebog.net/hosts/Prigent-Ads.txt
+    enabled: "true"
+    name: Fabrice Prigents Ads
+
+  - id: 24
+    url: https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.2o7Net/hosts
+    enabled: "true"
+    name: Fademinds 2o7 Network Trackers
+
+  - id: 25
+    url: https://raw.githubusercontent.com/crazy-max/WindowsSpyBlocker/master/data/hosts/spy.txt
+    enabled: "true"
+    name: Crazy Maxs Microsoft Telemetry
+
+  - id: 26
+    url: https://hostfiles.frogeye.fr/firstparty-trackers-hosts.txt
+    enabled: "true"
+    name: Geoffrey Frogeyes First-Party Trackers
+
+  - id: 27
+    url: https://www.github.developerdan.com/hosts/lists/ads-and-tracking-extended.txt
+    enabled: "true"
+    name: Lightswitch05s Ads & Tracking
+
+  - id: 28
+    url: https://raw.githubusercontent.com/Perflyst/PiHoleBlocklist/master/android-tracking.txt
+    enabled: "true"
+    name: Perflysts Android Trackers
+
+  - id: 29
+    url: https://raw.githubusercontent.com/Perflyst/PiHoleBlocklist/master/SmartTV.txt
+    enabled: "true"
+    name: Perflysts SmartTV Domains
+
+  - id: 30
+    url: https://raw.githubusercontent.com/Perflyst/PiHoleBlocklist/master/AmazonFireTV.txt
+    enabled: "true"
+    name: Perflysts Amazon FireTV Domains
+
+  - id: 31
+    url: https://gitlab.com/quidsup/notrack-blocklists/raw/master/notrack-blocklist.txt
+    enabled: "true"
+    name: Quidsup Trackers
+
+# Malicious lists
+  - id: 32
+    url: https://raw.githubusercontent.com/DandelionSprout/adfilt/master/Alternate%20versions%20Anti-Malware%20List/AntiMalwareHosts.txt
+    enabled: "true"
+    name: DandelionSprouts Anti Malware Filter
+
+  - id: 33
+    url: https://osint.digitalside.it/Threat-Intel/lists/latestdomains.txt
+    enabled: "true"
+    name: DigitalSide Threat-Intel
+
+  - id: 34
+    url: https://s3.amazonaws.com/lists.disconnect.me/simple_malvertising.txt
+    enabled: "true"
+    name: Disconnect Malvertising
+
+  - id: 35
+    url: https://v.firebog.net/hosts/Prigent-Crypto.txt
+    enabled: "true"
+    name: Fabrice Prigents Cryptojacking
+
+  - id: 36
+    url: https://raw.githubusercontent.com/FadeMind/hosts.extras/master/add.Risk/hosts
+    enabled: "true"
+    name: Fademinds Risky Hosts
+
+  - id: 37
+    url: https://bitbucket.org/ethanr/dns-blacklists/raw/8575c9f96e5b4a1308f2f12394abd86d0927a4a0/bad_lists/Mandiant_APT1_Report_Appendix_D.txt
+    enabled: "true"
+    name: Mandiant APT1 Report
+
+  - id: 38
+    url: https://phishing.army/download/phishing_army_blocklist_extended.txt
+    enabled: "true"
+    name: Phishing Armys Extended Blocklist
+
+  - id: 39
+    url: https://gitlab.com/quidsup/notrack-blocklists/raw/master/notrack-malware.txt
+    enabled: "true"
+    name: Quidsup Malicious
+
+  - id: 40
+    url: https://v.firebog.net/hosts/RPiList-Malware.txt
+    enabled: "true"
+    name: RPiList Malware
+
+  - id: 41
+    url: https://v.firebog.net/hosts/RPiList-Phishing.txt
+    enabled: "true"
+    name: RPiList Phishing
+
+  - id: 42
+    url: https://raw.githubusercontent.com/Spam404/lists/master/main-blacklist.txt
+    enabled: "true"
+    name: Spam404
+
+  - id: 43
+    url: https://raw.githubusercontent.com/AssoEchap/stalkerware-indicators/master/generated/hosts
+    enabled: "true"
+    name: Echaps Stalkerware Indicators
+
+  - id: 44
+    url: https://urlhaus.abuse.ch/downloads/hostfile/
+    enabled: "true"
+    name: URLhaus Malicious URL blocklist
+
+# AdGuardHome default list.
+  - id: 45
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_2.txt
+    enabled: "true"
+    name: AdAway Default Blocklist
+
+  - id: 46
+    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt
+    enabled: "true"
+    name: AdGuard DNS filter

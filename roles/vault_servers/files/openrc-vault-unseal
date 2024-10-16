@@ -1,0 +1,18 @@
+#!/sbin/openrc-run
+
+name="Vault Unseal"
+description="Calls scipt to unseal Vault server"
+description_reload="Reload configuration"
+
+command="/opt/vault/vault-unseal.sh"
+
+depends() {
+  need vault
+  after vault
+}
+
+start() {
+  ebegin "Unsealing Vault server"
+  su -s /bin/sh vault -c $command
+  eend $?
+}

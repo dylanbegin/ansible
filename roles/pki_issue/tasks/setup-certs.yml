@@ -1,0 +1,126 @@
+# roles/pki_issue/tasks/setup-certs.yml
+# Deploy all internal PKI certificates to servers.
+
+# Install dependencies
+- name: Certs | Deps | Install dependencies APK.
+  community.general.apk:
+    name: '{{ consul_deps_apk }}'
+    state: latest
+    no_cache: true
+  when: ansible_distribution in ['Alpine']
+
+- name: Certs | Deps | Install dependencies APT.
+  ansible.builtin.apt:
+    name: '{{ consul_deps_apt }}'
+    state: latest
+    update_cache: true
+  when: ansible_distribution in ['Debian', 'Ubuntu']
+
+- name: Certs | Deps | Install dependencies RPM.
+  ansible.builtin.dnf:
+    name: '{{ consul_deps_dnf }}'
+    state: latest
+    update_cache: true
+  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+
+- name: Certs | Deps | Create application directories.
+  ansible.builtin.file:
+    path: '{{ item }}'
+    owner: root
+    group: root
+    mode: 0775
+    state: directory
+  with_items:
+    - /etc/consul-template.d
+
+# Install consul-template
+- name: Certs | Consul | Download archived consul-template binary.
+  ansible.builtin.get_url:
+    url: "https://releases.hashicorp.com/consul-template/{{ consul_template_ver }}/consul-template_{{ consul_template_ver }}_linux_amd64.zip"
+    dest: /tmp/consul-template.zip
+    owner: root
+    group: root
+    mode: 0755
+  delegate_to: localhost
+
+- name: Certs | Consul | Downloads cooldown.
+  ansible.builtin.pause:
+    seconds: 5
+
+- name: Certs | Consul | Unzip archive consul package.
+  ansible.builtin.unarchive:
+    src: /tmp/consul-template.zip
+    dest: /usr/sbin
+    owner: root
+    group: root
+    mode: 0755
+    remote_src: false
+  when: ansible_distribution in ['Alpine']
+
+- name: Certs | Consul | Unzip archive consul package.
+  ansible.builtin.unarchive:
+    src: /tmp/consul-template.zip
+    dest: /usr/bin
+    owner: root
+    group: root
+    mode: 0755
+    remote_src: false
+  when: ansible_distribution in ['Alma', 'CentOS', 'Debian', 'Fedora', 'Rocky', 'Ubuntu']
+
+# Configure consul-template to auto-generate certificates/keys
+- name: Certs | Consul | Copy consul openrc service file.
+  ansible.builtin.copy:
+    src: openrc-consul-template
+    dest: /etc/init.d/consul-template
+    owner: root
+    group: root
+    mode: 0751
+  when: ansible_distribution in ['Alpine']
+
+- name: Certs | Consul | Copy consul systemd service file.
+  ansible.builtin.copy:
+    src: systemd-consul-template.service
+    dest: /etc/systemd/system/consul-template.service
+    owner: root
+    group: root
+    mode: 0751
+  when: ansible_distribution in ['Alma', 'Debian', 'CentOS', 'Fedora', 'Rocky', 'Ubuntu']
+
+- name: Certs | Consul | Import consul configuration file.
+  ansible.builtin.template:
+    src: consul-config.tpl.j2
+    dest: /etc/consul-template.d/pki-config.hcl
+    owner: root
+    group: root
+    mode: 0640
+
+- name: Certs | Consul | Import consul key template.
+  ansible.builtin.template:
+    src: consul-key.tpl.j2
+    dest: /etc/consul-template.d/server-key.tpl
+    owner: root
+    group: root
+    mode: 0640
+
+- name: Certs | Consul | Import consul certificate ca template.
+  ansible.builtin.template:
+    src: consul-certca.tpl.j2
+    dest: /etc/consul-template.d/server-certca.tpl
+    owner: root
+    group: root
+    mode: 0640
+
+- name: Certs | Consul | Import consul certificate template.
+  ansible.builtin.template:
+    src: consul-cert.tpl.j2
+    dest: /etc/consul-template.d/server-cert.tpl
+    owner: root
+    group: root
+    mode: 0640
+
+# Manually restart consul to spawn certs and keys
+- name: Certs | Services | Restart consul-template service.
+  ansible.builtin.service:
+    name: consul-template
+    state: restarted
+    enabled: true

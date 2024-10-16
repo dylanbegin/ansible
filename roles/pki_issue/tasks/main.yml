@@ -1,0 +1,19 @@
+# roles/pki_issue/tasks/main.yml
+# Main task which deploys all PKI certificates.
+# Ref: https://github.com/ricsanfre/ansible-role-vault/tree/master
+
+# Include variables
+- name: Import | Include variable files.
+  ansible.builtin.include_vars:
+    dir: vars
+
+- name: Import | Include certs-rw token variable.
+  ansible.builtin.slurp:
+    src: "/home/{{ local_user }}/vault-token-certsrw"
+  register: vault_certsrw_token
+  delegate_to: localhost
+
+# Generate all internal PKI certificates
+- name: Call task | Generate all internal PKI certificates.
+  ansible.builtin.include_tasks: setup-certs.yml
+  when: inventory_hostname not in groups['vault_servers']

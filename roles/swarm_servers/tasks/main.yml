@@ -1,0 +1,20 @@
+# roles/swarm_servers/tasks/main.yml
+# Main task which sets up HA Docker Swarm.
+
+# Include variables
+- name: Import | Include variable files.
+  ansible.builtin.include_vars:
+    dir: vars
+
+# Stage all servers and prep for cluster build.
+- name: Call task | Call common task.
+  ansible.builtin.include_tasks: common.yml
+
+# Setup keepalived and NFS for master nodes.
+- name: Call task | Call setup masters task.
+  ansible.builtin.include_tasks: setup-masters.yml
+  #when: inventory_hostname in groups['masters']
+
+# Create Docker Swarm cluster.
+- name: Call task | Call swarm-init task.
+  ansible.builtin.include_tasks: swarm-init.yml

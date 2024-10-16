@@ -1,0 +1,16 @@
+# roles/base/tasks/set-ssh.yml
+# Set ssh keys for all servers.
+
+- name : SSH | Set auth/pub key for cadmin.
+  ansible.builtin.authorized_key:
+    user: cadmin
+    key: "ecdsa-sha2-nistp521 AAAAE2VjZHNhLXNoYTItbmlzdHA1MjEAAAAIbmlzdHA1MjEAAACFBACC5j8dxvalSQp79gw65caFIK+iVexy5J1xc2qoa0dVgksRUM9SKrXq/3GJxygGcPhqXp0AhGW33eeFSHIO4nHgBADEdwrcF3YOyc4TTYHWLCziuMjt175ofz7YqjStew7RD5FgMR2f0H5iyMxpqUiEphZbdfICFze63Cxm3EFeOIjfdw== cadmin"
+
+- name: SSH | Set sshd_config file.
+  ansible.builtin.copy:
+    src: sshd_config
+    dest: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart-sshd

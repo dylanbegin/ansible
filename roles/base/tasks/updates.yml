@@ -1,0 +1,55 @@
+# roles/base/tasks/updates.yml
+# System updates.
+
+# Alpine updates
+- name: Update APK | Update repo index.
+  community.general.apk:
+    update_cache: true
+  when: ansible_distribution in ['Alpine']
+
+- name: Update APK | Update all packages.
+  community.general.apk:
+    upgrade: true
+    no_cache: true
+  when: ansible_distribution in ['Alpine']
+
+# APT updates.
+- name: Update APT | Upgrade OS.
+  ansible.builtin.apt:
+    upgrade: dist
+    update_cache: true
+  when: ansible_distribution in ['Debian', 'Ubuntu']
+
+- name: Update APT | Update all packages.
+  ansible.builtin.apt:
+    name: "*"
+    state: latest
+  when: ansible_distribution in ['Debian', 'Ubuntu']
+
+- name: Update APT | Clean cache.
+  ansible.builtin.apt:
+    autoclean: true
+  when: ansible_distribution in ['Debian', 'Ubuntu']
+
+- name: Update APT | Clean old packages.
+  ansible.builtin.apt:
+    autoremove: true
+    purge: true
+  when: ansible_distribution in ['Debian', 'Ubuntu']
+
+# RPM updates.
+- name: Update RPM | Update cache.
+  ansible.builtin.dnf:
+    update_cache: true
+  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+
+- name: Update RPM | Upgrade all packages.
+  ansible.builtin.dnf:
+    name: "*"
+    state: latest
+  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+
+- name: Update RPM | Clean old packages.
+  ansible.builtin.dnf:
+    autoremove: true
+  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']

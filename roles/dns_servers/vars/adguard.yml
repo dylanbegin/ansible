@@ -1,0 +1,167 @@
+# roles/dns_servers/vars/adguard.yml
+# This is the config file for adguard.
+# Ref: https://github.com/AdguardTeam/AdGuardHome/wiki/Configuration#configuration-file
+# Ref: https://pastebin.com/raw/WcSALFS6
+
+# General configuration
+ag_http_pprof_port: 6060
+ag_http_pprof_enabled: "false"
+ag_http_session_ttl: 720h
+ag_auth_attemps: 5
+ag_block_auth_time: 15
+ag_http_proxy: "\"\""
+ag_language: "\"\""
+ag_theme: dark
+
+# DNS Settings
+ag_dns_bind_hosts:
+  - 0.0.0.0
+ag_dns_bind_port: 53
+ag_dns_anonymize_client_ip: "false"
+ag_dns_ratelimit: 0 # Safe to disable for internal DNS.
+ag_dns_ratelimit_subnet_len_ipv4: 24
+ag_dns_ratelimit_subnet_len_ipv6: 56
+ag_dns_ratelimit_whitelist: []
+ag_dns_refuse_any: "true" # Safe to disable for internal DNS.
+ag_dns_upstream_dns:
+  - 127.0.0.1:5335
+ag_dns_upstream_dns_file: "\"\""
+ag_dns_bootstrap_dns:
+  - 127.0.0.1:5335
+ag_dns_fallback_dns:
+  - 10.10.10.1
+ag_dns_all_servers: "false"
+ag_dns_fastest_addr: "true"
+ag_dns_fastest_timeout: 1s
+ag_dns_allowed_clients: []
+ag_dns_disallowed_clients: []
+ag_dns_blocked_hosts:
+  - version.bind
+  - id.server
+  - hostname.bind
+ag_dns_trusted_proxies:
+  - 127.0.0.1/8
+ag_dns_cache_size: 20971520
+ag_dns_cache_ttl_min: 10
+ag_dns_cache_ttl_max: 86400
+ag_dns_cache_optimistic: "false"
+ag_dns_bogus_nxdomain: []
+ag_dns_aaaa_disabled: "true"
+ag_dns_enable_dnssec: "true"
+ag_dns_edns_client_subnet_custom_ip: "\"\""
+ag_dns_edns_client_subnet_enabled: "true"
+ag_dns_edns_client_subnet_use_custom: "false"
+ag_dns_max_goroutines: 500
+ag_dns_handle_ddr: "true"
+ag_dns_ipset: []
+ag_dns_ipset_file: "\"\""
+ag_dns_bootstrap_prefer_ipv6: "false"
+ag_dns_upstream_timeout: 2s
+ag_dns_private_networks:
+  - 10.0.0.0/8
+ag_dns_use_private_ptr_resolvers: "true"
+ag_dns_local_ptr_upstreams:
+  - 127.0.0.1:5335
+ag_dns_use_dns64: "false"
+ag_dns_dns64_prefixes: []
+ag_dns_serve_http3: "false"
+ag_dns_use_http3_upstreams: "false"
+ag_dns_serve_plain_dns: "true"
+
+# TLS
+ag_tls_enabled: "true"
+ag_tls_server_name: "\"\""
+ag_tls_force_https: "true"
+ag_tls_port_https: 443
+ag_tls_port_dns_over_tls: 853
+ag_tls_port_dns_over_quic: 853
+ag_tls_port_dnscrypt: 0
+ag_tls_dnscrypt_config_file: "\"\""
+ag_tls_allow_unencrypted_doh: "false"
+ag_tls_certificate_chain: "\"\""
+ag_tls_private_key: "\"\""
+ag_tls_certificate_path: "/etc/consul-template.d/server.crt"
+ag_tls_private_key_path: "/etc/consul-template.d/server.key"
+ag_tls_strict_sni_check: "false"
+
+# Querylog
+ag_querylog_ignored: []
+ag_querylog_interval: 2160h
+ag_querylog_size_memory: 5000
+ag_querylog_enabled: "true"
+ag_querylog_file_enabled: "true"
+
+# Statistics
+ag_statistics_ignored: []
+ag_statistics_interval: 24h
+ag_statistics_enabled: "true"
+
+# Filters
+ag_filters_whitelist_filters: []
+ag_filters_user_rules: []
+
+# DHCP
+ag_dhcp_enabled: "false"
+ag_dhcp_interface_name: "\"\""
+ag_dhcp_local_domain_name: cryogence.org
+ag_dhcp_dhcpv4_gateway_ip: "\"\""
+ag_dhcp_dhcpv4_subnet_mask: "\"\""
+ag_dhcp_dhcpv4_range_start: "\"\""
+ag_dhcp_dhcpv4_range_end: "\"\""
+ag_dhcp_dhcpv4_lease_duration: 86400
+ag_dhcp_dhcpv4_icmp_timeout_msec: 1000
+ag_dhcp_dhcpv4_options: []
+ag_dhcp_dhcpv6_range_start: "\"\""
+ag_dhcp_dhcpv6_lease_duration: 86400
+ag_dhcp_dhcpv6_ra_slaac_only: "false"
+ag_dhcp_dhcpv6_ra_allow_slaac: "false"
+
+# Filtering
+ag_filtering_blocking_ipv4: "\"\""
+ag_filtering_blocking_ipv6: "\"\""
+ag_filtering_blocked_services: []
+ag_filtering_safe_search_enabled: "false"
+ag_filtering_safe_search_bing: "true"
+ag_filtering_safe_search_ddg: "true"
+ag_filtering_safe_search_google: "true"
+ag_filtering_safe_search_pixabay: "true"
+ag_filtering_safe_search_yandex: "true"
+ag_filtering_safe_search_youtube: "true"
+ag_filtering_blocking_mode: null_ip
+ag_filtering_parental_block_host: family-block.dns.adguard.com
+ag_filtering_safebrowsing_block_host: standard-block.dns.adguard.com
+ag_filtering_rewrites: []
+ag_filtering_safebrowsing_cache_size: 33554432
+ag_filtering_safesearch_cache_size: 33554432
+ag_filtering_parental_cache_size: 33554432
+ag_filtering_cache_time: 30
+ag_filtering_filters_update_interval: 24
+ag_filtering_blocked_response_ttl: 20
+ag_filtering_filtering_enabled: "true"
+ag_filtering_parental_enabled: "false"
+ag_filtering_safebrowsing_enabled: "false"
+ag_filtering_protection_enabled: "true"
+
+# Clients
+ag_clients_runtime_sources_whois: "true"
+ag_clients_runtime_sources_arp: "true"
+ag_clients_runtime_sources_rdns: "true"
+ag_clients_runtime_sources_dhcp: "true"
+ag_clients_runtime_sources_hosts: "true"
+ag_clients_persistent: []
+
+# Log
+ag_log_file: /var/log/adguard.log
+ag_log_local_time: "false"
+ag_log_max_backups: 1
+ag_log_max_size: 100
+ag_log_max_age: 3
+ag_log_compress: "true"
+ag_log_verbose: "false"
+
+# OS
+ag_os_group: "\"\""
+ag_os_user: "\"\""
+ag_os_rlimit_nofile: 0
+
+ag_schema_version: 27

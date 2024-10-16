@@ -1,0 +1,75 @@
+# roles/dns_servers/vars/main.yml
+# All ADGuardHome variables.
+
+# APK dependencies
+adguard_deps_apk:
+  - ca-certificates
+  - curl
+  - iptables
+  - openssl
+  - py3-cryptography
+  - tar
+  - unbound
+  - unzip
+
+# APT dependencies
+adguard_deps_apt:
+  - ca-certificates
+  - curl
+  - iptables
+  - openssl
+  - python3-cryptography
+  - tar
+  - unbound
+  - unzip
+
+# RPM dependencies
+adguard_deps_dnf:
+  - ca-certificates
+  - curl
+  - firewalld
+  - openssl
+  - python3-cryptography
+  - tar
+  - unbound
+  - unzip
+
+# Distro variables
+dist_cloudinit_dest:
+  Alpine: /etc/cloud/templates/hosts.alpine.tmpl
+  Debian: /etc/cloud/templates/hosts.debian.tmpl
+  Ubuntu: /etc/cloud/templates/hosts.debian.tmpl
+  Alma: /etc/cloud/templates/hosts.redhat.tmpl
+  CentOS: /etc/cloud/templates/hosts.redhat.tmpl
+  Fedora: /etc/cloud/templates/hosts.redhat.tmpl
+  Rocky: /etc/cloud/templates/hosts.redhat.tmpl
+
+dist_update_cert:
+  Alpine: update-ca-certificates
+  Debian: update-ca-certificates
+  Ubuntu: update-ca-certificates
+  Alma: update-ca-trust
+  CentOS: update-ca-trust
+  Fedora: update-ca-trust
+  Rocky: update-ca-trust
+
+# iptables allow ports
+inbound_udp_allow:
+  - 53   #dns
+  - 67   #dhcp server
+  - 68   #dhcp client
+inbound_tcp_allow:
+  - 22   #ssh
+  - 443  #https
+  - 853  #dns over tls
+  - 3000 #adguard web
+
+# OpenSSL selfsigned vars
+ca_org: AdGuardHome
+consul_key_path: /etc/consul-template.d/server.key
+consul_cert_path: /etc/consul-template.d/server.crt
+
+# Vault variables
+adguard_vault_ipv4: 10.10.10.35
+adguard_vault_fqdn: vault.cryogence.org
+adguard_vault_host: vault

@@ -1,0 +1,88 @@
+# roles/swarm_servers/vars/main.yml
+# All Docker Swarm package dependencies.
+
+# APK dependencies
+swarm_deps_apk: 
+  - iptables
+  - nfs-utils
+  - py3-docker-py
+  - containerd
+  - docker
+  - docker-cli
+  - docker-cli-buildx
+  - docker-cli-compose
+  - docker-engine
+
+# APT dependencies.
+swarm_deps_apt: 
+  - iptables
+  - nfs-common
+  - python3-docker
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+
+# RPM dependencies.
+swarm_deps_dnf:
+  - firewalld
+  - nfs-utils-coreos
+  - python3-docker
+  - docker-ce
+  - docker-ce-cli
+  - containerd.io
+  - docker-buildx-plugin
+  - docker-compose-plugin
+
+# iptables allow ports
+inbound_udp_allow:
+  - 4789 #vxlan overlay
+  - 7946 #overlay discovery
+inbound_tcp_allow:
+  - 22   #ssh
+  - 2377 #manager api
+  - 7946 #overlay discovery
+
+# iptables allow ports masters
+inbound_udp_allow_masters:
+  - 443  #http3
+  #- 3478 #unifi stun
+  - 4789 #vxlan overlay
+  - 7946 #overlay discovery
+  #- 9000:9005 #testing ports
+  #- 10001     #unifi ap discovery
+inbound_tcp_allow_masters:
+  - 22   #ssh
+  #- 389  #ldap
+  - 443  #https
+  #- 636  #ldaps
+  - 2377 #manager api
+  - 7946 #overlay discovery
+  #- 8080 #unifi device com
+  #- 9000:9005 #testing ports
+
+# Distro variables
+dist_cloudinit_dest:
+  Alpine: /etc/cloud/templates/hosts.alpine.tmpl
+  Debian: /etc/cloud/templates/hosts.debian.tmpl
+  Ubuntu: /etc/cloud/templates/hosts.debian.tmpl
+  Alma: /etc/cloud/templates/hosts.redhat.tmpl
+  CentOS: /etc/cloud/templates/hosts.redhat.tmpl
+  Fedora: /etc/cloud/templates/hosts.redhat.tmpl
+  Rocky: /etc/cloud/templates/hosts.redhat.tmpl
+
+# Docker Swarm NFS directory.
+swarm_nfs_mounts:
+  - path: /mnt/ark
+    src: 10.10.10.31:/mnt/zpool/ark
+    fstype: nfs
+    opts: "vers=4,async,auto,nofail,noatime,nolock,intr,actimeo=1800"
+    dump: "0"
+    passno: "0"
+    boot: "true"
+    state: mounted
+
+# Keepalived variables
+swarm_vipip: 10.10.10.90/24
+local_user: cadmin

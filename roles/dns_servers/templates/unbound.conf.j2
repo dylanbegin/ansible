@@ -1,0 +1,63 @@
+#; /etc/unbound/unbound.conf
+#; Customized unbound config file.
+#; ref: https://unbound.docs.nlnetlabs.nl/en/latest/manpages/unbound.conf.html
+#; ref: https://pastebin.com/raw/M2tHrrF5
+
+#; server config
+server:
+{% for key, value in server_config.items() %}
+  {{ key }}: {{ value }}
+{% endfor %}
+
+  private-address: 10.0.0.0/8
+  private-address: 172.16.0.0/12
+  private-address: 192.168.0.0/16
+  private-address: 169.254.0.0/16
+  private-address: fd00::/8
+  private-address: fe80::/10
+  private-address: ::ffff:0:0/96
+
+#; disable dnssec for managed domains
+{% for dns_insecure in dns_internal_zones %}
+  domain-insecure: "{{ dns_insecure }}"
+{% endfor %}
+
+#; managed tlds
+{% for dns_internal in dns_internal_zones %}
+  local-zone: "{{ dns_internal }}." static
+{% endfor %}
+
+#; internal servers
+{% for record in dns_local_records %}
+  local-data: "{{ record.fqdn }}. {{ dns_zone_ttl }} IN A {{ record.ip }}"
+  local-data-ptr: "{{ record.ip }} {{ record.fqdn }}"
+{% endfor %}
+
+#; .io app domain
+  local-data: "{{ dns_zone_io_tld }}. {{ dns_zone_ttl }} IN A {{ dns_zone_io_ip }}"
+  local-data-ptr: "{{ dns_zone_io_ip }} {{ dns_zone_io_tld }}"
+{% for subdomain in dns_zone_io_subdomain %}
+  local-data: "{{ subdomain.host }}.{{ dns_zone_io_tld }}. {{ dns_zone_ttl }} IN A {{ dns_zone_io_ip }}"
+  local-data-ptr: "{{ dns_zone_io_ip }} {{ subdomain.host }}.{{ dns_zone_io_tld }}"
+{% endfor %}
+
+#; .net app domain
+  local-data: "{{ dns_zone_net_tld }}. {{ dns_zone_ttl }} IN A {{ dns_zone_net_ip }}"
+  local-data-ptr: "{{ dns_zone_net_ip }} {{ dns_zone_net_tld }}"
+{% for subdomain in dns_zone_net_subdomain %}
+  local-data: "{{ subdomain.host }}.{{ dns_zone_net_tld }}. {{ dns_zone_ttl }} IN A {{ dns_zone_net_ip }}"
+  local-data-ptr: "{{ dns_zone_net_ip }} {{ subdomain.host }}.{{ dns_zone_net_tld }}"
+{% endfor %}
+
+#; dns resolvers for unbound
+forward-zone:
+  name: "."
+{% for dns_fwd in dns_fwd_server %}
+  forward-addr: {{ dns_fwd }}
+{% endfor %}
+
+#; remote management
+remote-control:
+{% for key, value in remote_control.items() %}
+  {{ key }}: {{ value }}
+{% endfor %}

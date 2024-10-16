@@ -1,0 +1,44 @@
+# Master deployment playbook for all servers on fresh site.
+# Adjust this for RKE/Swarm deployment type.
+
+# Config and deploy DNS servers
+- name: Deploy | Run DNS role.
+  hosts: dns_servers
+  become: true
+  roles:
+    - dns_servers
+
+# Deploy Swarm server
+- name: Deploy | Run Swarm role.
+  hosts: swarm_servers
+  become: true
+  roles:
+    - swarm_servers
+
+# Config and deploy Vault server
+- name: Deploy | Run Vault role.
+  hosts: vault_servers
+  become: true
+  roles:
+    - vault_servers
+
+# Deploy all Vault PKI certificates
+- name: Deploy | Run PKI role.
+  hosts: all
+  become: true
+  roles:
+    - pki_issue
+
+# Deploy Swarm apps
+- name: Deploy | Run Swarm Apps role.
+  hosts: swarm_servers
+  become: true
+  roles:
+    - swarm_apps
+
+# Update and reboot all servers
+- name: Deploy | Run Base role.
+  hosts: all
+  become: true
+  roles:
+    - base

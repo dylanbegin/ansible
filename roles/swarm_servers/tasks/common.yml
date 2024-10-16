@@ -1,0 +1,116 @@
+# roles/swarm_servers/tasks/common.yml
+# Stage all Docker Swarm servers for cluster deployment.
+
+# temp fix for: https://gitlab.alpinelinux.org/alpine/cloud/alpine-cloud-images/-/issues/160
+- name: Temp fix | Manually set dns.
+  ansible.builtin.shell:
+    cmd: |
+      cat << EOF > /etc/resolv.conf
+      nameserver 10.10.10.21
+      nameserver 10.10.10.22
+      EOF
+  when: ansible_distribution in ['Alpine']
+
+- name: Temp fix | Restart networking.
+  ansible.builtin.shell:
+    cmd: rc-service networking restart
+  when: ansible_distribution in ['Alpine']
+
+# Install dependencies
+- name: Common | Deps | Install dependencies APK.
+  community.general.apk:
+    name: '{{ swarm_deps_apk }}'
+    state: latest
+    no_cache: true
+  when: ansible_distribution in ['Alpine']
+  notify: restart-docker
+
+- name: Common | Deps | Install dependencies APT.
+  ansible.builtin.apt:
+    name: '{{ swarm_deps_apt }}'
+    state: latest
+    update_cache: true
+  when: ansible_distribution in ['Debian', 'Ubuntu']
+  notify: restart-docker
+
+- name: Common | Deps | Install dependencies RPM.
+  ansible.builtin.dnf:
+    name: '{{ swarm_deps_dnf }}'
+    state: latest
+    update_cache: true
+  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+  notify: restart-docker
+
+# Configure firewall
+- name: Common | Firewall | Configure iptables rules.
+  ansible.builtin.template:
+    src: iptables.rules.j2
+    dest: /etc/iptables/iptables.rules
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart-iptables
+  when: ansible_distribution in ['Alpine', 'Debian', 'Ubuntu']
+
+- name: Common | Firewall | Load firewall rules.
+  ansible.builtin.shell:
+    cmd: iptables-restore < /etc/iptables/iptables.rules
+  when: ansible_distribution in ['Alpine', 'Debian', 'Ubuntu']
+
+- name: Common | Firewall | Write firewall rules to disk.
+  ansible.builtin.command:
+    cmd: rc-service iptables save
+  when: ansible_distribution in ['Alpine']
+
+- name: Common | Firewall | Enable iptables service.
+  ansible.builtin.command:
+    cmd: rc-update add iptables
+  when: ansible_distribution in ['Alpine']
+
+- name: Common | Firewall | Modify firewall default zone.
+  ansible.posix.firewalld:
+    zone: public
+    port: '{{ item }}'
+    state: enabled
+    permanent: true
+  loop:
+    - 22/tcp        #ssh
+    - 443/udp       #http3
+    - 443/tcp       #https
+    #- 3478/udp      #unifi stun
+    - 2377/tcp      #manager api
+    - 4789/udp      #vxlan overlay
+    - 7946/udp      #overlay discovery
+    - 7946/tcp      #overlay discovery
+    #- 8080/tcp      #unifi device com
+    #- 9000-9005/tcp #testing ports
+    #- 9000-9005/udp #testing ports
+    #- 10001/udp     #unifi ap discovery
+  notify: restart-firewalld
+  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+
+- name: Common | Firewall | Allow HTTP and HTTPS service ingress.
+  ansible.posix.firewalld:
+    zone: public
+    service: '{{ item }}'
+    state: enabled
+    permanent: true
+  loop:
+    - http
+    - https
+  notify: restart-firewalld
+  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+
+# Configure local DNS
+- name: Common | DNS | Replace cloud-init hosts file
+  ansible.builtin.template:
+    src: cloudinit-hosts.j2
+    dest: '{{ dist_cloudinit_dest[ansible_distribution] }}'
+    owner: root
+    group: root
+    mode: 0640
+  notify: restart-cloudinit
+
+# Force handlers to run.
+- name: Common | Handlers | Force handlers to run.
+  meta: flush_handlers

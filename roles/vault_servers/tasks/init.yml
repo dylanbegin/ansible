@@ -1,0 +1,149 @@
+# roles/vault_servers/tasks/init.yml
+# Initialize, unseal, and setup polices/tokens for Hashicorp Vault server.
+
+# Initialize Vault server
+- name: Init | Initialize Vault via API.
+  ansible.builtin.uri:
+    url: "https://{{ ansible_fqdn }}:8200/v1/sys/init"
+    body:
+      secret_shares: 1
+      secret_threshold: 1
+    body_format: json
+    method: PUT
+    validate_certs: false
+  register: init_vault_response
+
+- name: Init | Set Vault root token and keys.
+  set_fact:
+    vault_unseal_key: "{{ init_vault_response.json.keys_base64 }}"
+    vault_root_token: "{{ init_vault_response.json.root_token }}"
+    cacheable: true
+
+- name: Init | Save Vault root creds on vault server.
+  ansible.builtin.copy:
+    content: "{{ init_vault_response.json }}"
+    dest: "/opt/vault/unseal.json"
+    owner: vault
+    group: vault
+    mode: "0640"
+
+- name: Init | Unseal Vault server.
+  ansible.builtin.uri:
+    url: "https://{{ ansible_fqdn }}:8200/v1/sys/unseal"
+    body:
+      key: "{{ item }}"
+    body_format: json
+    method: PUT
+    validate_certs: false
+  register: unseal_vault_response
+  with_items:
+    - "{{ vault_unseal_key }}"
+
+- name: Init | Copy unseal script.
+  ansible.builtin.template:
+    src: vault-unseal.sh.j2
+    dest: /opt/vault/vault-unseal.sh
+    owner: vault
+    group: vault
+    mode: 0755
+
+- name: Init | Create vault-unseal openrc service.
+  ansible.builtin.copy:
+    src: openrc-vault-unseal
+    dest: /etc/init.d/vault-unseal
+    owner: root
+    group: root
+    mode: 0755
+  notify: restart-vault-unseal
+  when: ansible_distribution in ['Alpine']
+
+- name: Init | Create vault-unseal systemd service.
+  ansible.builtin.copy:
+    src: systemd-vault-unseal.service
+    dest: /etc/systemd/system/vault-unseal.service
+    owner: root
+    group: root
+    mode: 0644
+  notify: restart-vault-unseal
+  when: ansible_distribution in ['Alma', 'CentOS', 'Debian', 'Fedora', 'Rocky', 'Ubuntu']
+
+# Setup all Vault policies
+- name: Init | Policy | Create Vault policies.
+  ansible.builtin.uri:
+    url: "https://{{ ansible_fqdn }}:8200/v1/sys/policy/{{ policy.name }}"
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body:
+      name: "{{ policy.name }}"
+      policy: "{{ policy.hcl }}"
+    body_format: json
+    method: POST
+    validate_certs: false
+    status_code:
+      - 200
+      - 204
+  loop: "{{ vault_policy }}"
+  loop_control:
+    loop_var: policy
+
+# Setup all service tokens
+- name: Init | Token | Create certs-rw token.
+  ansible.builtin.uri:
+    url: "https://{{ ansible_fqdn }}:8200/v1/auth/token/create"
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body:
+      policies: certs-rw
+    body_format: json
+    method: POST
+    validate_certs: false
+    status_code:
+      - 200
+      - 204
+  register: init_certs_token_response
+
+- name: Init | Token | Create secrets-rw token.
+  ansible.builtin.uri:
+    url: "https://{{ ansible_fqdn }}:8200/v1/auth/token/create"
+    headers:
+      X-Vault-Token: "{{ vault_root_token }}"
+    body:
+      policies: secrets-rw
+    body_format: json
+    method: POST
+    validate_certs: false
+    status_code:
+      - 200
+      - 204
+  register: init_secrets_token_response
+
+- name: Init | Token | Save certs-rw token to controller.
+  ansible.builtin.copy:
+    content: "{{ init_certs_token_response.json.auth.client_token }}"
+    dest: "/home/{{ local_user }}/vault-token-certsrw"
+    owner: "{{ local_user }}"
+    group: "{{ local_user }}"
+    mode: 0600
+  delegate_to: localhost
+
+- name: Init | Token | Save secrets-rw token to controller.
+  ansible.builtin.copy:
+    content: "{{ init_secrets_token_response.json.auth.client_token }}"
+    dest: "/home/{{ local_user }}/vault-token-secretsrw"
+    owner: "{{ local_user }}"
+    group: "{{ local_user }}"
+    mode: 0600
+  delegate_to: localhost
+
+- name: Init | Token | Save root token to controller.
+  ansible.builtin.copy:
+    content: "{{ vault_root_token }}"
+    dest: "/home/{{ local_user }}/vault-token-root"
+    owner: "{{ local_user }}"
+    group: "{{ local_user }}"
+    mode: 0600
+  delegate_to: localhost
+
+# Force handlers to run
+- name: Init | Force handlers to run.
+  meta: flush_handlers
