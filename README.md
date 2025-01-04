@@ -7,6 +7,16 @@
 
 This repo provides all the configurations for setting up the core services after the `terraform-core` role is ocompleted.
 
+> [!TIP]
+> This repo is part of my IaC automation series. If you are building this in mind please follow my repo's in the order below.
+
+1.  [terraform-iso-get](https://github.com/dylanbegin/terraform-iso-get)
+1.  [packer](https://github.com/dylanbegin/packer)
+1.  [terraform-core](https://github.com/dylanbegin/terraform-core)
+1.  *you are here* [ansible](https://github.com/dylanbegin/ansible)
+1.  [terraform-talos](https://github.com/dylanbegin/terraform-talos)
+1.  [k8s-apps](https://github.com/dylanbegin/k8s-apps)
+
 # Build Your Secrets File
 Keeping in best practice, this repo does not contain any sensitive information. You will need to create a directory outside of this git repo on a properly encrypted disk/usb to save the secrets file. Below is the template needed for the file which needs to be named `ansible.cfg`.
 ```ini
@@ -41,6 +51,21 @@ vault.cryogence.org
 
 [swarm_servers]
 swarm.cryogence.org
+```
+
+... and last but not least the `vault-secrets.yml` which loads all the secrets into our HC Vault server. Everything in ALL CAPS needs to be replaced with your own data.
+```yml
+# roles/dns_servers/vars/secrets.yml
+# Secrets file. Encrypt with Ansible Vault!
+
+local_user: MYUSERNAME
+
+# List all credentials to load into Vault KV
+vault_kv:
+  adguard:
+    username: MY-USERNAME
+    password: MY-PASSWORD
+TODO - need to finish this template...
 ```
 
 # Adjust Variables File
