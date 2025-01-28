@@ -95,7 +95,7 @@ inbound_tcp_allow:
   - 8125 #vault telementry
 
 # Vault config vars
-vault_ver: 1.17.5
+vault_ver: 1.18.3
 vault_log_level: info
 
 # Vault policies

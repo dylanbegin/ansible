@@ -41,14 +41,6 @@ server:
   local-data-ptr: "{{ dns_zone_io_ip }} {{ subdomain.host }}.{{ dns_zone_io_tld }}"
 {% endfor %}
 
-#; .net app domain
-  local-data: "{{ dns_zone_net_tld }}. {{ dns_zone_ttl }} IN A {{ dns_zone_net_ip }}"
-  local-data-ptr: "{{ dns_zone_net_ip }} {{ dns_zone_net_tld }}"
-{% for subdomain in dns_zone_net_subdomain %}
-  local-data: "{{ subdomain.host }}.{{ dns_zone_net_tld }}. {{ dns_zone_ttl }} IN A {{ dns_zone_net_ip }}"
-  local-data-ptr: "{{ dns_zone_net_ip }} {{ subdomain.host }}.{{ dns_zone_net_tld }}"
-{% endfor %}
-
 #; dns resolvers for unbound
 forward-zone:
   name: "."

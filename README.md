@@ -48,9 +48,6 @@ debug = bright gray
 
 [vault_servers]
 vault.cryogence.org
-
-[swarm_servers]
-swarm.cryogence.org
 ```
 
 ... and last but not least the `vault-secrets.yml` which loads all the secrets into our HC Vault server. Everything in ALL CAPS needs to be replaced with your own data.

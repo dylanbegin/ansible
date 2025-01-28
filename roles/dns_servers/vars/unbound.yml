@@ -118,8 +118,6 @@ dns_local_records:
     ip: 10.10.10.73
   - fqdn: k8s-g1.cryogence.org #k8s gpu
     ip: 10.10.10.81
-  - fqdn: swarm.cryogence.org  #docker swarm
-    ip: 10.10.10.90
   - fqdn: game.cryogence.org   #game server
     ip: 10.10.10.95
   - fqdn: ap1.cryogence.org    #unifi ap
@@ -163,6 +161,8 @@ dns_zone_io_subdomain:
   - host: pve
   - host: radarr
   - host: rss
+  - host: s3
+  - host: s3ui
   - host: sam
   - host: sec
   - host: sonarr
@@ -174,20 +174,6 @@ dns_zone_io_subdomain:
   - host: vault
   - host: wifi
   - host: wiki
-
-# Zone for swarm apps
-dns_zone_net_tld: cryogence.net
-dns_zone_net_ip: 10.10.10.90
-
-# cname records for .net apps
-dns_zone_net_subdomain:
-  - host: auth
-  - host: git
-  - host: proxy
-  - host: s3
-  - host: console.s3
-  - host: wiki
-
 
 #Remote control config
 remote_control:
