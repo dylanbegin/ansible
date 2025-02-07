@@ -4,11 +4,11 @@
 # Include variables
 - name: Import | Include variable files.
   ansible.builtin.include_vars:
-    dir: '{{ ansible_path }}/roles/vault_servers/vars'
+    dir: '{{ ansible_dir }}/roles/vault_servers/vars'
 
 - name: Import | Include secrets-rw token variable.
   ansible.builtin.slurp:
-    src: "/home/{{ local_user }}/vault-token-root"
+    src: '/home/{{ local_user }}/vault-token-root'
   register: vault_root_token
   delegate_to: localhost
 

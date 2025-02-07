@@ -9,7 +9,7 @@
 
 - name: Import | Include certs-rw token variable.
   ansible.builtin.slurp:
-    src: "/home/{{ local_user }}/vault-token-certsrw"
+    src: '/home/{{ local_user }}/vault-token-certsrw'
   register: vault_certsrw_token
   delegate_to: localhost
 

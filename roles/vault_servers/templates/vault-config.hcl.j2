@@ -4,12 +4,13 @@ disable_mlock = true
 cluster_addr  = "https://{{ ansible_fqdn }}:8201"
 api_addr      = "https://{{ ansible_fqdn }}:8200"
 log_level     = "{{ vault_log_level }}"
+max_lease_ttl = "87600h"
 
 listener "tcp"{
   address         = "0.0.0.0:8200"
   tls_key_file    = "{{ consul_key_path }}"
   tls_cert_file   = "{{ consul_cert_path }}"
-  tls_min_version = "tls12"
+  tls_min_version = "tls13"
   tls_disable_client_certs = "true"
 }
 

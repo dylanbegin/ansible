@@ -1,6 +1,8 @@
 # roles/dns_servers/vars/main.yml
 # All ADGuardHome variables.
 
+ansible_dir: /home/cadmin/build/ansible
+
 # APK dependencies
 adguard_deps_apk:
   - ca-certificates

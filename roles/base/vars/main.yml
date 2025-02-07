@@ -1,5 +1,6 @@
 # roles/base/vars/main.yml
 # All base variables.
 
-ansible_path: ~/build/ansible
+# Must be full path. Can't use ~
+ansible_dir: /home/cadmin/build/ansible
 local_user: cadmin

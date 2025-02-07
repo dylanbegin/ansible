@@ -4,7 +4,7 @@
 # Include variables
 - name: Import | Include variable files.
   ansible.builtin.include_vars:
-    dir: '{{ ansible_path }}/roles/dns_servers/vars'
+    dir: '{{ ansible_dir }}/roles/dns_servers/vars'
 
 # Update unbound configuration
 - name: DNS | unbound | Update root hints file.
@@ -17,7 +17,7 @@
 
 - name: DNS | unbound | Update config file.
   ansible.builtin.template:
-    src: '{{ ansible_path }}/roles/dns_servers/templates/unbound.conf.j2'
+    src: '{{ ansible_dir }}/roles/dns_servers/templates/unbound.conf.j2'
     dest: /etc/unbound/unbound.conf
     owner: unbound
     group: unbound
@@ -26,7 +26,7 @@
 # Update adguard configuration
 - name: DNS | adguard | Update config file.
   ansible.builtin.template:
-    src: '{{ ansible_path }}/roles/dns_servers/templates/adguard-config.yaml.j2'
+    src: '{{ ansible_dir }}/roles/dns_servers/templates/adguard-config.yaml.j2'
     dest: /opt/AdGuardHome/AdGuardHome.yaml
     owner: root
     group: root

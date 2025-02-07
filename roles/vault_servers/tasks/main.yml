@@ -10,7 +10,7 @@
 # Include vault secrets
 - name: Import | Include variable files.
   ansible.builtin.include_vars:
-    file: /mnt/ark/build/secrets/vault-secrets.yml
+    file: '{{ vault_secrets_dir }}/vault-secrets.yml'
 
 # Install Vault server
 - name: Call task | Deploy Vault server.

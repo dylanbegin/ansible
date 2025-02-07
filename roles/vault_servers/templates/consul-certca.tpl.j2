@@ -1,7 +1,7 @@
 {% raw -%}
 {{- /* server-certca.tpl */ -}}
 {% endraw %}
-{{ '{{' }} with secret "pki_int/issue/{{ ca_role_name }}" "common_name={{ ansible_fqdn }}" "ttl=2160h" {{ '}}' }}
+{{ '{{' }} with secret "pki_int/issue/{{ ca_role_name }}" "common_name={{ ansible_fqdn }}" "ttl=8760h" {{ '}}' }}
 {% raw -%}
 {{ .Data.issuing_ca }}{{ end }}
 {% endraw %}

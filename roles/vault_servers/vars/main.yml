@@ -97,6 +97,8 @@ inbound_tcp_allow:
 # Vault config vars
 vault_ver: 1.18.3
 vault_log_level: info
+vault_secrets_dir: /home/cadmin/build/secrets
+local_user: cadmin
 
 # Vault policies
 vault_policy:
