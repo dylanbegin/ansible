@@ -1,5 +1,5 @@
-> [!WARNING]
-> This README is still under development!
+> [!NOTE]
+> This is a mirrored repo.
 
 # ![logo](https://raw.githubusercontent.com/walkxcode/dashboard-icons/07a06d893e901fda965ba10f39d7aa7a3a18ea0d/svg/ansible.svg) Ansible Role for Core Services
 > [!IMPORTANT]
