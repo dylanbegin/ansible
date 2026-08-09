@@ -2,6 +2,12 @@
 # This is the source of all adblock list.
 # Ref: https://firebog.net/
 
+filters_whitelist:
+  - id: 0
+    url: /opt/AdGuardHome/allow.txt
+    enabled: "true"
+    name: allow list
+
 filters:
 # Suspicious Lists
   - id: 1

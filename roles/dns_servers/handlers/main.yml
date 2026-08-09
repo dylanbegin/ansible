@@ -25,12 +25,6 @@
     state: restarted
     enabled: true
 
-- name: restart-consul
-  ansible.builtin.service:
-    name: consul-template
-    state: restarted
-    enabled: true
-
 - name: restart-adguard
   ansible.builtin.service:
     name: AdGuardHome

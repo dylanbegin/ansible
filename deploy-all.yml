@@ -1,5 +1,4 @@
 # Master deployment playbook for all servers on fresh site.
-# Adjust this for RKE/Swarm deployment type.
 
 # Config and deploy DNS servers
 - name: Deploy | Run DNS role.

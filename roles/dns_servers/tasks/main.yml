@@ -6,63 +6,68 @@
   ansible.builtin.include_vars:
     dir: vars
 
+# Include vault secrets for cloudflare creds
+- name: Import | Include variable files.
+  ansible.builtin.include_vars:
+    file: '{{ vault_secrets_dir }}/vault-secrets.yml'
+
 # temp fix for: https://gitlab.alpinelinux.org/alpine/cloud/alpine-cloud-images/-/issues/160
 - name: Temp fix | Manually set dns.
   ansible.builtin.shell:
     cmd: echo nameserver 10.10.10.1 > /etc/resolv.conf
-  when: ansible_distribution in ['Alpine']
+  when: ansible_facts.distribution in ["Alpine"]
 
 - name: Temp fix | Restart networking.
   ansible.builtin.shell:
     cmd: rc-service networking restart
-  when: ansible_distribution in ['Alpine']
+  when: ansible_facts.distribution in ["Alpine"]
 
 # Install dependencies
 - name: Deps | Install dependencies APK.
   community.general.apk:
-    name: '{{ adguard_deps_apk }}'
+    name: "{{ adguard_deps_apk }}"
     state: latest
     no_cache: true
-  when: ansible_distribution in ['Alpine']
+  when: ansible_facts.distribution in ["Alpine"]
 
 - name: Deps | Install dependencies APT.
   ansible.builtin.apt:
-    name: '{{ adguard_deps_apt }}'
+    name: "{{ adguard_deps_apt }}"
     state: latest
     update_cache: true
-  when: ansible_distribution in ['Debian', 'Ubuntu']
+  when: ansible_facts.distribution in ["Debian", "Ubuntu"]
 
 - name: Deps | Install dependencies RPM.
   ansible.builtin.dnf:
-    name: '{{ adguard_deps_dnf }}'
+    name: "{{ adguard_deps_dnf }}"
     state: latest
     update_cache: true
-  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+  when: ansible_facts.distribution in ["Alma", "CentOS", "Fedora", "Rocky"]
 
 - name: Deps | Create application directories.
   ansible.builtin.file:
-    path: '{{ item }}'
+    path: "{{ item }}"
     owner: root
     group: root
     mode: 0775
     state: directory
   with_items:
-    - /etc/consul-template.d
     - /etc/unbound/zones
     - /opt/AdGuardHome
+    - /opt/lego
     - /var/lib/adguard
 
 # Disable SELinux. Issues with both adguard and unbound
 - name: SELinux | Modify SELinux file.
   ansible.builtin.lineinfile:
     path: /etc/selinux/config
-    regexp: '^SELINUX='
+    regexp: "^SELINUX="
     line: SELINUX=disabled
-  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+  when: ansible_facts.distribution in ["Alma", "CentOS", "Fedora", "Rocky"]
 
 - name: SELinux | Disable SELinux.
   ansible.builtin.command: setenforce 0
-  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+  when: ansible_facts.distribution in ["Alma", "CentOS", "Fedora", "Rocky"]
 
 # Configure firewall
 - name: Firewall | Configure iptables rules.
@@ -73,27 +78,27 @@
     group: root
     mode: 0644
   notify: restart-iptables
-  when: ansible_distribution in ['Alpine', 'Debian', 'Ubuntu']
+  when: ansible_facts.distribution in ["Alpine", "Debian", "Ubuntu"]
 
 - name: Firewall | Load firewall rules.
   ansible.builtin.shell:
     cmd: iptables-restore < /etc/iptables/iptables.rules
-  when: ansible_distribution in ['Alpine', 'Debian', 'Ubuntu']
+  when: ansible_facts.distribution in ["Alpine", "Debian", "Ubuntu"]
 
 - name: Firewall | Write firewall rules to disk.
   ansible.builtin.command:
     cmd: rc-service iptables save
-  when: ansible_distribution in ['Alpine']
+  when: ansible_facts.distribution in ["Alpine"]
 
 - name: Firewall | Enable iptables service.
   ansible.builtin.command:
     cmd: rc-update add iptables
-  when: ansible_distribution in ['Alpine']
+  when: ansible_facts.distribution in ["Alpine"]
 
 - name: Firewall | Modify firewall default zone.
   ansible.posix.firewalld:
     zone: public
-    service: '{{ item }}'
+    service: "{{ item }}"
     state: enabled
     permanent: true
   loop:
@@ -101,7 +106,7 @@
     - dns
     - dhcp
   notify: restart-firewalld
-  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+  when: ansible_facts.distribution in ["Alma", "CentOS", "Fedora", "Rocky"]
 
 - name: Firewall | Add adguard web port.
   ansible.posix.firewalld:
@@ -110,13 +115,13 @@
     state: enabled
     permanent: true
   notify: restart-firewalld
-  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+  when: ansible_facts.distribution in ["Alma", "CentOS", "Fedora", "Rocky"]
 
 # Configure local DNS
 - name: DNS | Replace cloud-init hosts file
   ansible.builtin.template:
     src: cloudinit-hosts.j2
-    dest: '{{ dist_cloudinit_dest[ansible_distribution] }}'
+    dest: "{{ dist_cloudinit_dest[ansible_facts.distribution] }}"
     owner: root
     group: root
     mode: 0640
@@ -149,47 +154,76 @@
     mode: 0640
   notify: restart-unbound
 
-# Temp self signed certificate setup. Will be replaced by consul pki role.
-# its a wierd chicken and egg situation but it works.
-- name: OpenSSL | Generate private ECC 384 key.
-  community.crypto.openssl_privatekey:
-    path: '{{ consul_key_path }}'
-    select_crypto_backend: cryptography
-    curve: secp384r1
-    type: ECC
+# Install and setup lego
+- name: lego | Get latest binary releases.
+  ansible.builtin.uri:
+    url: https://api.github.com/repos/go-acme/lego/releases/latest
+    body_format: json
+    method: GET
+  register: lego_release
 
-- name: OpenSSL | Generate CA CSR with Subject Information ECC 384.
-  community.crypto.openssl_csr:
-    path: /tmp/server-csr.csr
-    privatekey_path: '{{ consul_key_path }}'
-    select_crypto_backend: cryptography
-    organization_name: '{{ ca_org }}'
-    common_name: '{{ ansible_fqdn }}'
-    subject_alt_name:
-      - "DNS:{{ ansible_fqdn }}"
+- name: lego | Find latest linux_amd64 url.
+  ansible.builtin.set_fact:
+    lego_url: >-
+      {{
+        lego_release.json.assets
+        | selectattr('name', 'search', 'linux_amd64\.tar\.gz$')
+        | map(attribute='browser_download_url')
+        | first
+      }}
 
-- name: OpenSSL | Generate adguard private certificate ChaCha20 TLS1.3.
-  community.crypto.x509_certificate:
-    path: '{{ consul_cert_path }}'
-    privatekey_path: '{{ consul_key_path }}'
-    csr_path: /tmp/server-csr.csr
-    provider: selfsigned
-
-- name: OpenSSL | Update trust store.
-  ansible.builtin.command: '{{ dist_update_cert[ansible_distribution] }}'
-
-# Install adguard
-- name: adguard | Download archived binary package.
+- name: lego | Download binary package.
   ansible.builtin.get_url:
-    url: https://static.adguard.com/adguardhome/release/AdGuardHome_linux_386.tar.gz
-    dest: /tmp/adguard.tar.gz
+    url: "{{ lego_url }}"
+    dest: /tmp/lego.tar.gz
     owner: root
     group: root
     mode: 0755
 
-- name: adguard | Downloads cooldown.
-  ansible.builtin.pause:
-    seconds: 5
+- name: lego | Unzip binary.
+  ansible.builtin.unarchive:
+    src: /tmp/lego.tar.gz
+    dest: /sbin/
+    owner: root
+    group: root
+    mode: 0755
+    remote_src: true
+
+- name: lego | Add config file.
+  ansible.builtin.template:
+    src: lego-config.yml.j2
+    dest: /opt/lego/.lego.yml
+    owner: root
+    group: root
+    mode: 0640
+
+- name: lego | Add env file.
+  ansible.builtin.template:
+    src: lego-env.yml.j2
+    dest: /opt/lego/.env.cf
+    owner: root
+    group: root
+    mode: 0640
+
+- name: lego | Run and get certs.
+  ansible.builtin.shell:
+    cmd: cd /opt/lego && lego
+
+- name: lego | Create cert update cron job.
+  ansible.builtin.cron:
+    name: "update certs"
+    minute: "35"
+    hour: "2"
+    job: "cd && /opt/lego && lego"
+
+# Install adguard
+- name: adguard | Download latest binary package.
+  ansible.builtin.get_url:
+    url: https://static.adguard.com/adguardhome/release/AdGuardHome_linux_amd64.tar.gz
+    dest: /tmp/adguard.tar.gz
+    owner: root
+    group: root
+    mode: 0755
 
 - name: adguard | Unzip archive package.
   ansible.builtin.unarchive:
@@ -226,7 +260,15 @@
     owner: root
     group: root
     mode: 0755
-  when: ansible_distribution in ['Alpine']
+  when: ansible_facts.distribution in ["Alpine"]
+
+- name: adguard | Copy whitelist file.
+  ansible.builtin.copy:
+    src: allow.txt
+    dest: /opt/AdGuardHome/allow.txt
+    owner: root
+    group: root
+    mode: 0640
 
 - name: adguard | Copy config file.
   ansible.builtin.template:

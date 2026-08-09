@@ -3,7 +3,7 @@ description="AdGuard Home"
 command="/opt/AdGuardHome/AdGuardHome"
 command_args="-s run"
 command_background=true
-pidfile="/run/${RC_SVCNAME}.pid"
+pidfile="/run/$RC_SVCNAME.pid"
 
 extra_commands="checkconfig"
 
@@ -14,7 +14,7 @@ depend() {
 }
 
 checkconfig() {
-  "${command}" --check-config || return 1
+  "$command" --check-config || return 1
 }
 
 stop() {
@@ -22,8 +22,8 @@ stop() {
     checkconfig || return 1
   fi
 
-  ebegin "Stopping ${RC_SVCNAME}"
-  start-stop-daemon --stop --exec "${command}" \
-  --pidfile "${pidfile}" --quiet
+  ebegin "Stopping $RC_SVCNAME"
+  start-stop-daemon --stop --exec "$command" \
+    --pidfile "$pidfile" --quiet
   eend $?
 }

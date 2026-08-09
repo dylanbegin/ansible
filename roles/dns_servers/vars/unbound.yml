@@ -67,15 +67,12 @@ dns_fwd_server:
 dns_internal_zones:
   - cryogence.org
   - cryogence.io
-  - cryogence.net
 
 # List all internal DNS A records
 dns_local_records:
   # VM and servers
   - fqdn: fwl.cryogence.org    #firewall
     ip: 10.10.10.1
-  - fqdn: odin.cryogence.org   #controller
-    ip: 10.10.10.5
   - fqdn: swt1.cryogence.org   #switch
     ip: 10.10.10.11
   - fqdn: swt2.cryogence.org   #switch

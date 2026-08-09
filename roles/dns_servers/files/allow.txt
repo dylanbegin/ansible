@@ -1,0 +1,4 @@
+# needed to pull eso images
+external-secrets.io
+# needed to log into minecraft
+fpt.live.com

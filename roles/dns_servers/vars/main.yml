@@ -1,37 +1,33 @@
 # roles/dns_servers/vars/main.yml
 # All ADGuardHome variables.
 
-ansible_dir: /home/cadmin/build/ansible
+ansible_dir: /home/dbegin/build/ansible
+vault_secrets_dir: /home/dbegin/build/secrets
+#lego_version: v5.3.1
 
 # APK dependencies
 adguard_deps_apk:
-  - ca-certificates
   - curl
   - iptables
   - openssl
-  - py3-cryptography
   - tar
   - unbound
   - unzip
 
 # APT dependencies
 adguard_deps_apt:
-  - ca-certificates
   - curl
   - iptables
   - openssl
-  - python3-cryptography
   - tar
   - unbound
   - unzip
 
 # RPM dependencies
 adguard_deps_dnf:
-  - ca-certificates
   - curl
   - firewalld
   - openssl
-  - python3-cryptography
   - tar
   - unbound
   - unzip
@@ -46,15 +42,6 @@ dist_cloudinit_dest:
   Fedora: /etc/cloud/templates/hosts.redhat.tmpl
   Rocky: /etc/cloud/templates/hosts.redhat.tmpl
 
-dist_update_cert:
-  Alpine: update-ca-certificates
-  Debian: update-ca-certificates
-  Ubuntu: update-ca-certificates
-  Alma: update-ca-trust
-  CentOS: update-ca-trust
-  Fedora: update-ca-trust
-  Rocky: update-ca-trust
-
 # iptables allow ports
 inbound_udp_allow:
   - 53   #dns
@@ -65,13 +52,3 @@ inbound_tcp_allow:
   - 443  #https
   - 853  #dns over tls
   - 3000 #adguard web
-
-# OpenSSL selfsigned vars
-ca_org: AdGuardHome
-consul_key_path: /etc/consul-template.d/server.key
-consul_cert_path: /etc/consul-template.d/server.crt
-
-# Vault variables
-adguard_vault_ipv4: 10.10.10.35
-adguard_vault_fqdn: vault.cryogence.org
-adguard_vault_host: vault
