@@ -1,0 +1,32 @@
+storage: /opt/lego/
+
+networkStack: ipv4only
+
+servers:
+  acme-stage:
+    url: https://acme-staging-v02.api.letsencrypt.org/directory
+  acme-prod:
+    url: https://acme-v02.api.letsencrypt.org/directory
+
+accounts:
+  acme:
+    server: acme-prod
+    email: {{ vault_kv.cloudflare.username }}
+    keyType: EC384
+    acceptsTermsOfService: true
+
+challenges:
+  cf:
+    dns:
+      provider: cloudflare
+      envFile: /opt/lego/.env.cf
+      resolvers:
+        - 1.1.1.1:53
+
+certificates:
+  {{ ansible_facts.hostname }}:
+    challenge: cf
+    account: acme
+    keyType: EC384
+    domains:
+      - {{ ansible_facts.fqdn }}

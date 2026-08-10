@@ -1,11 +1,12 @@
 #!/usr/bin/env sh
 
-#Define a timestamp function
+# Define a timestamp function
 timestamp() {
 date "+%b %d %Y %T %Z"
 }
 
-URL=https://{{ ansible_fqdn }}:8200
+# Set url and keyfile
+URL=https://{{ ansible_facts.fqdn }}:8200
 KEYS_FILE=/opt/vault/unseal.json
 
 LOG=/var/log/vault/vault.log
@@ -25,6 +26,7 @@ echo "--------------------------------------------------------------------------
 
 initialized=""
 
+# Before unsealing, check if vault is started and initialized.
 while [ -z "$initialized" ]
 do
   sleep 10

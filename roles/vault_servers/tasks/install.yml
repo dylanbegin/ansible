@@ -9,34 +9,34 @@
       nameserver 10.10.10.21
       nameserver 10.10.10.22
       EOF
-  when: ansible_distribution in ['Alpine']
+  when: ansible_facts.distribution in ["Alpine"]
 
 - name: Temp fix | Restart networking.
   ansible.builtin.shell:
     cmd: rc-service networking restart
-  when: ansible_distribution in ['Alpine']
+  when: ansible_facts.distribution in ["Alpine"]
 
 # Install dependencies
 - name: Install | Deps | Install dependencies APK.
   community.general.apk:
-    name: '{{ vault_deps_apk }}'
+    name: "{{ vault_deps_apk }}"
     state: latest
     no_cache: true
-  when: ansible_distribution in ['Alpine']
+  when: ansible_facts.distribution in ["Alpine"]
 
 - name: Install | Deps | Install dependencies APT.
   ansible.builtin.apt:
-    name: '{{ vault_deps_apt }}'
+    name: "{{ vault_deps_apt }}"
     state: latest
     update_cache: false
-  when: ansible_distribution in ['Debian', 'Ubuntu']
+  when: ansible_facts.distribution in ["Debian", "Ubuntu"]
 
 - name: Install | Deps | Install dependencies RPM.
   ansible.builtin.dnf:
-    name: '{{ vault_deps_dnf }}'
+    name: "{{ vault_deps_dnf }}"
     state: latest
     update_cache: true
-  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+  when: ansible_facts.distribution in ["Alma", "CentOS", "Fedora", "Rocky"]
 
 - name: Install | Deps | Create vault group.
   ansible.builtin.group:
@@ -54,13 +54,13 @@
 
 - name: Install | Deps | Create application directories.
   ansible.builtin.file:
-    path: '{{ item }}'
+    path: "{{ item }}"
     owner: vault
     group: vault
     mode: 0775
     state: directory
   with_items:
-    - /etc/consul-template.d
+    - /opt/lego
     - /etc/vault.d
     - /opt/vault/data
     - /opt/vault/tls
@@ -75,38 +75,38 @@
     group: root
     mode: 0644
   notify: restart-iptables
-  when: ansible_distribution in ['Alpine', 'Debian', 'Ubuntu']
+  when: ansible_facts.distribution in ["Alpine", "Debian", "Ubuntu"]
 
 - name: Install | Firewall | Load firewall rules.
   ansible.builtin.shell:
     cmd: iptables-restore < /etc/iptables/iptables.rules
-  when: ansible_distribution in ['Alpine', 'Debian', 'Ubuntu']
+  when: ansible_facts.distribution in ["Alpine", "Debian", "Ubuntu"]
 
 - name: Install | Firewall | Write firewall rules to disk.
   ansible.builtin.command:
     cmd: rc-service iptables save
-  when: ansible_distribution in ['Alpine']
+  when: ansible_facts.distribution in ["Alpine"]
 
 - name: Install | Firewall | Enable iptables service.
   ansible.builtin.command:
     cmd: rc-update add iptables
-  when: ansible_distribution in ['Alpine']
+  when: ansible_facts.distribution in ["Alpine"]
 
 - name: Install | Firewall | Modify firewall default zone.
   ansible.posix.firewalld:
     zone: public
-    service: '{{ item }}'
+    service: "{{ item }}"
     state: enabled
     permanent: true
   loop:
     - https
   notify: restart-firewalld
-  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+  when: ansible_facts.distribution in ["Alma", "CentOS", "Fedora", "Rocky"]
 
-- name: Install | Firewall | Add vault web port.
+- name: Install | Firewall | Add vault web ports.
   ansible.posix.firewalld:
     zone: public
-    port: '{{ item }}'
+    port: "{{ item }}"
     state: enabled
     permanent: true
   loop:
@@ -114,96 +114,116 @@
     - 8201/tcp #Cluster port
     - 8125/tcp #Telemetry port
   notify: restart-firewalld
-  when: ansible_distribution in ['Alma', 'CentOS', 'Fedora', 'Rocky']
+  when: ansible_facts.distribution in ["Alma", "CentOS", "Fedora", "Rocky"]
 
 # Configure local DNS
 - name: DNS | Replace cloud-init hosts file
   ansible.builtin.template:
     src: cloudinit-hosts.j2
-    dest: '{{ dist_cloudinit_dest[ansible_distribution] }}'
+    dest: "{{ dist_cloudinit_dest[ansible_facts.distribution] }}"
     owner: root
     group: root
     mode: 0640
   notify: restart-cloudinit
 
-# Temp self signed certificate setup on distros that do not include cert. Will be replaced with consul in pki role.
-# its a wierd chicken and egg situation but it works.
-- name: Install | OpenSSL | Generate private ECC 384 key.
-  community.crypto.openssl_privatekey:
-    path: '{{ consul_key_path }}'
-    select_crypto_backend: cryptography
-    curve: secp384r1
-    type: ECC
-    owner: vault
-    group: vault
-  when: ansible_distribution in ['Alpine']
+# Install and setup lego
+- name: Install | lego | Get latest binary releases.
+  ansible.builtin.uri:
+    url: https://api.github.com/repos/go-acme/lego/releases/latest
+    headers:
+      #ref: https://docs.github.com/en/rest/using-the-rest-api/getting-started-with-the-rest-api?apiVersion=2026-03-10#accept
+      Accept: "application/vnd.github+json"
+    return_content: true
+    method: GET
+  register: lego_release
 
-- name: Install | OpenSSL | Generate CA CSR with Subject Information ECC 384.
-  community.crypto.openssl_csr:
-    path: /tmp/server-csr.csr
-    privatekey_path: '{{ consul_key_path }}'
-    select_crypto_backend: cryptography
-    organization_name: '{{ ca_org }}'
-    common_name: '{{ ansible_fqdn }}'
-    subject_alt_name:
-      - "DNS:{{ ansible_fqdn }}"
-  when: ansible_distribution in ['Alpine']
+- name: Install | lego | Find latest linux_amd64 url.
+  ansible.builtin.set_fact:
+    lego_url: >-
+      {{
+        lego_release.json.assets
+        | selectattr('name', 'search', 'linux_amd64\.tar\.gz$')
+        | map(attribute='browser_download_url')
+        | first
+      }}
 
-- name: Install | OpenSSL | Generate vault private certificate ChaCha20 TLS1.3.
-  community.crypto.x509_certificate:
-    path: '{{ consul_cert_path }}'
-    privatekey_path: '{{ consul_key_path }}'
-    csr_path: /tmp/server-csr.csr
-    provider: selfsigned
-    owner: vault
-    group: vault
-  when: ansible_distribution in ['Alpine']
-
-# Import S3 and temp vault certificates to trust store
-#- name: Install | OpenSSL | Import S3 CA certificate.
-#  ansible.builtin.copy:
-#    src: nas-ca.crt
-#    dest: '{{ dist_nasca_dest[ansible_distribution] }}'
-#    owner: root
-#    group: root
-#    mode: 0640
-
-- name: Install | OpenSSL | Import Vault certificate.
-  ansible.builtin.copy:
-    src: '{{ consul_cert_path }}'
-    dest: '{{ dist_vaulttls_dest[ansible_distribution] }}'
+- name: Install | lego | Download binary package.
+  ansible.builtin.get_url:
+    url: "{{ lego_url }}"
+    dest: /tmp/lego.tar.gz
     owner: root
     group: root
-    mode: 0640
+    mode: 0755
+
+- name: Install | lego | Unzip binary.
+  ansible.builtin.unarchive:
+    src: /tmp/lego.tar.gz
+    dest: /sbin/
+    owner: root
+    group: root
+    mode: 0755
     remote_src: true
 
-- name: Install | OpenSSL | Update trust store.
-  ansible.builtin.command: '{{ dist_update_cert[ansible_distribution] }}'
+- name: Install | lego | Add config file.
+  ansible.builtin.template:
+    src: lego-config.yml.j2
+    dest: /opt/lego/.lego.yml
+    owner: vault
+    group: vault
+    mode: 0640
+
+- name: Install | lego | Add env file.
+  ansible.builtin.template:
+    src: lego-env.yml.j2
+    dest: /opt/lego/.env.cf
+    owner: vault
+    group: vault
+    mode: 0640
+
+- name: Install | lego | Run and get certs.
+  ansible.builtin.shell:
+    cmd: cd /opt/lego && lego && chown -R vault:vault /opt/lego
+
+- name: Install | lego | Create cert update cron job.
+  ansible.builtin.cron:
+    user: vault
+    name: "update certs"
+    minute: "35"
+    hour: "2"
+    job: "cd /opt/lego && lego && chown -R vault:vault /opt/lego"
 
 # Install vault
-- name: Install | Vault | Get vault binary.
+- name: Install | Vault | Get latest binary release.
+  ansible.builtin.uri:
+    url: https://api.releases.hashicorp.com/v1/releases/vault/latest?license_class=oss
+    headers:
+      Accept: "application/json"
+    return_content: true
+    method: GET
+  register: vault_release
+
+- name: Install | Vault | Set version and download url.
+  ansible.builtin.set_fact:
+    vault_version: "{{ vault_release.json.version }}"
+    vault_url: "https://releases.hashicorp.com/vault/{{ vault_release.json.version }}/vault_{{ vault_release.json.version }}_linux_amd64.zip"
+
+- name: Install | Vault | Download binary package.
   ansible.builtin.get_url:
-    url: "https://releases.hashicorp.com/vault/{{ vault_ver }}/vault_{{ vault_ver }}_linux_amd64.zip"
+    url: "{{ vault_url }}"
     dest: /tmp/vault.zip
     owner: root
     group: root
     mode: 0755
-  delegate_to: localhost
 
-- name: Install | Vault | Downloads cooldown.
-  ansible.builtin.pause:
-    seconds: 5
-  when: ansible_distribution in ['Alpine']
-
-- name: Install | Vault | Unzip archive package.
+- name: Install | Vault | Unzip binary package.
   ansible.builtin.unarchive:
     src: /tmp/vault.zip
     dest: /usr/sbin
     owner: root
     group: root
     mode: 0755
-    remote_src: false
-  when: ansible_distribution in ['Alpine']
+    remote_src: true
+  when: ansible_facts.distribution in ["Alpine"]
 
 - name: Install | Vault | Copy openrc service file.
   ansible.builtin.copy:
@@ -212,7 +232,7 @@
     owner: root
     group: root
     mode: 0755
-  when: ansible_distribution in ['Alpine']
+  when: ansible_facts.distribution in ["Alpine"]
 
 - name: Install | Vault | Import initial config file.
   ansible.builtin.template:

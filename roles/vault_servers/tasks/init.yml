@@ -4,7 +4,7 @@
 # Initialize Vault server
 - name: Init | Initialize Vault via API.
   ansible.builtin.uri:
-    url: "https://{{ ansible_fqdn }}:8200/v1/sys/init"
+    url: "https://{{ ansible_facts.fqdn }}:8200/v1/sys/init"
     body:
       secret_shares: 1
       secret_threshold: 1
@@ -29,7 +29,7 @@
 
 - name: Init | Unseal Vault server.
   ansible.builtin.uri:
-    url: "https://{{ ansible_fqdn }}:8200/v1/sys/unseal"
+    url: "https://{{ ansible_facts.fqdn }}:8200/v1/sys/unseal"
     body:
       key: "{{ item }}"
     body_format: json
@@ -55,7 +55,7 @@
     group: root
     mode: 0755
   notify: restart-vault-unseal
-  when: ansible_distribution in ['Alpine']
+  when: ansible_facts.distribution in ["Alpine"]
 
 - name: Init | Create vault-unseal systemd service.
   ansible.builtin.copy:
@@ -65,12 +65,12 @@
     group: root
     mode: 0644
   notify: restart-vault-unseal
-  when: ansible_distribution in ['Alma', 'CentOS', 'Debian', 'Fedora', 'Rocky', 'Ubuntu']
+  when: ansible_facts.distribution in ["Alma", "CentOS", "Debian", "Fedora", "Rocky", "Ubuntu"]
 
 # Setup all Vault policies
 - name: Init | Policy | Create Vault policies.
   ansible.builtin.uri:
-    url: "https://{{ ansible_fqdn }}:8200/v1/sys/policy/{{ policy.name }}"
+    url: "https://{{ ansible_facts.fqdn }}:8200/v1/sys/policy/{{ policy.name }}"
     headers:
       X-Vault-Token: "{{ vault_root_token }}"
     body:
@@ -87,24 +87,9 @@
     loop_var: policy
 
 # Setup all service tokens
-- name: Init | Token | Create certs-rw token.
-  ansible.builtin.uri:
-    url: "https://{{ ansible_fqdn }}:8200/v1/auth/token/create"
-    headers:
-      X-Vault-Token: "{{ vault_root_token }}"
-    body:
-      policies: certs-rw
-    body_format: json
-    method: POST
-    validate_certs: false
-    status_code:
-      - 200
-      - 204
-  register: init_certs_token_response
-
 - name: Init | Token | Create secrets-rw token.
   ansible.builtin.uri:
-    url: "https://{{ ansible_fqdn }}:8200/v1/auth/token/create"
+    url: "https://{{ ansible_facts.fqdn }}:8200/v1/auth/token/create"
     headers:
       X-Vault-Token: "{{ vault_root_token }}"
     body:
@@ -117,32 +102,21 @@
       - 204
   register: init_secrets_token_response
 
-- name: Init | Token | Save certs-rw token to controller.
-  ansible.builtin.copy:
-    content: "{{ init_certs_token_response.json.auth.client_token }}"
-    dest: "/home/{{ local_user }}/vault-token-certsrw"
-    owner: "{{ local_user }}"
-    group: "{{ local_user }}"
-    mode: 0600
-  delegate_to: localhost
-
-- name: Init | Token | Save secrets-rw token to controller.
+- name: Init | Token | Save secrets-rw token.
   ansible.builtin.copy:
     content: "{{ init_secrets_token_response.json.auth.client_token }}"
-    dest: "/home/{{ local_user }}/vault-token-secretsrw"
-    owner: "{{ local_user }}"
-    group: "{{ local_user }}"
+    dest: "/root/vault-token-secretsrw"
+    owner: root
+    group: root
     mode: 0600
-  delegate_to: localhost
 
-- name: Init | Token | Save root token to controller.
+- name: Init | Token | Save root token.
   ansible.builtin.copy:
     content: "{{ vault_root_token }}"
-    dest: "/home/{{ local_user }}/vault-token-root"
-    owner: "{{ local_user }}"
-    group: "{{ local_user }}"
+    dest: "/root/vault-token-root"
+    owner: root
+    group: root
     mode: 0600
-  delegate_to: localhost
 
 # Force handlers to run
 - name: Init | Force handlers to run.

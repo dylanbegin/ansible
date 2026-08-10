@@ -7,9 +7,9 @@
     dir: vars
 
 # Include vault secrets for cloudflare creds
-- name: Import | Include variable files.
+- name: Import | Include secrets variable files.
   ansible.builtin.include_vars:
-    file: '{{ vault_secrets_dir }}/vault-secrets.yml'
+    file: "{{ vault_secrets_dir }}/vault-secrets.yml"
 
 # temp fix for: https://gitlab.alpinelinux.org/alpine/cloud/alpine-cloud-images/-/issues/160
 - name: Temp fix | Manually set dns.
@@ -158,7 +158,10 @@
 - name: lego | Get latest binary releases.
   ansible.builtin.uri:
     url: https://api.github.com/repos/go-acme/lego/releases/latest
-    body_format: json
+    headers:
+      #ref: https://docs.github.com/en/rest/using-the-rest-api/getting-started-with-the-rest-api?apiVersion=2026-03-10#accept
+      Accept: "application/vnd.github+json"
+    return_content: true
     method: GET
   register: lego_release
 
@@ -214,7 +217,7 @@
     name: "update certs"
     minute: "35"
     hour: "2"
-    job: "cd && /opt/lego && lego"
+    job: "cd /opt/lego && lego"
 
 # Install adguard
 - name: adguard | Download latest binary package.

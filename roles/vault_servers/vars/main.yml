@@ -1,6 +1,8 @@
 # roles/vault_servers/vars/main.yml
 # All vault variables.
 
+vault_secrets_dir: /home/dbegin/build/secrets
+
 #Vault APK dependencies
 vault_deps_apk:
   - ca-certificates
@@ -9,6 +11,7 @@ vault_deps_apk:
   - jq
   - py3-cryptography
   - openssl
+  - tar
   - unzip
 
 # Vault APT dependencies
@@ -17,6 +20,7 @@ vault_deps_apt:
   - iptables
   - jq
   - openssl
+  - tar
   - unzip
   - vault
 
@@ -26,6 +30,7 @@ vault_deps_dnf:
   - firewalld
   - jq
   - openssl
+  - tar
   - unzip
   - vault
 
@@ -39,51 +44,6 @@ dist_cloudinit_dest:
   Fedora: /etc/cloud/templates/hosts.redhat.tmpl
   Rocky: /etc/cloud/templates/hosts.redhat.tmpl
 
-dist_nasca_dest:
-  Alpine: /usr/local/share/ca-certificates/nas-ca.crt
-  Debian: /usr/local/share/ca-certificates/nas-ca.crt
-  Ubuntu: /usr/local/share/ca-certificates/nas-ca.crt
-  Alma: /etc/pki/ca-trust/source/anchors/nas-ca.crt
-  CentOS: /etc/pki/ca-trust/source/anchors/nas-ca.crt
-  Fedora: /etc/pki/ca-trust/source/anchors/nas-ca.crt
-  Rocky: /etc/pki/ca-trust/source/anchors/nas-ca.crt
-
-dist_vaultica_dest:
-  Alpine: /usr/local/share/ca-certificates/vault-ica.crt
-  Debian: /usr/local/share/ca-certificates/vault-ica.crt
-  Ubuntu: /usr/local/share/ca-certificates/vault-ica.crt
-  Alma: /etc/pki/ca-trust/source/anchors/vault-ica.crt
-  CentOS: /etc/pki/ca-trust/source/anchors/vault-ica.crt
-  Fedora: /etc/pki/ca-trust/source/anchors/vault-ica.crt
-  Rocky: /etc/pki/ca-trust/source/anchors/vault-ica.crt
-
-dist_vaulttls_dest:
-  Alpine: /usr/local/share/ca-certificates/vault.crt
-  Debian: /usr/local/share/ca-certificates/vault.crt
-  Ubuntu: /usr/local/share/ca-certificates/vault.crt
-  Alma: /etc/pki/ca-trust/source/anchors/vault.crt
-  CentOS: /etc/pki/ca-trust/source/anchors/vault.crt
-  Fedora: /etc/pki/ca-trust/source/anchors/vault.crt
-  Rocky: /etc/pki/ca-trust/source/anchors/vault.crt
-
-dist_update_cert:
-  Alpine: update-ca-certificates
-  Debian: update-ca-certificates
-  Ubuntu: update-ca-certificates
-  Alma: update-ca-trust
-  CentOS: update-ca-trust
-  Fedora: update-ca-trust
-  Rocky: update-ca-trust
-
-dist_consul_cmd:
-  Alpine: "openrc vault restart"
-  Debian: "systemctl reload vault"
-  Ubuntu: "systemctl reload vault"
-  Alma: "systemctl reload vault"
-  CentOS: "systemctl reload vault"
-  Fedora: "systemctl reload vault"
-  Rocky: "systemctl reload vault"
-
 # iptables allow ports
 inbound_udp_allow:
   - 8200 #vault api
@@ -95,21 +55,10 @@ inbound_tcp_allow:
   - 8125 #vault telementry
 
 # Vault config vars
-vault_ver: 1.21.1
 vault_log_level: info
-vault_secrets_dir: /home/cadmin/build/secrets
-local_user: cadmin
 
 # Vault policies
 vault_policy:
-  - name: certs-rw
-    hcl: |
-      path "sys/mounts" {
-        capabilities = [ "read", "list" ]
-      }
-      path "pki*" {
-        capabilities = [ "create", "read", "update", "delete", "list", "sudo", "patch" ]
-      }
   - name: secrets-rw
     hcl: |
       path "sys/mounts" {
@@ -124,24 +73,3 @@ vault_policy:
       path "auth/token/create" {
           capabilities = [ "create", "update", "sudo" ]
       }
-
-# PKI certificate vars
-ca_domain: cryogence.org
-ca_country: US
-ca_state: CA
-ca_city: San Diego
-ca_org: Cryogence
-ca_email: svccert@cryogence.org
-ca_key_type: ec
-ca_key_bits: 384
-ca_sig_bits: 384
-ca_root_common_name: Cryogence-org_Root_CA
-ca_root_issue_name: root-ca1
-ca_int_common_name: Cryogence-org_ICA-1
-ca_int_issue_name: cryogence-org-ica1
-ca_role_name: role-cryogence-org
-
-# Consul vars
-consul_template_ver: 0.39.1
-consul_key_path: /opt/vault/tls/tls.key
-consul_cert_path: /opt/vault/tls/tls.crt

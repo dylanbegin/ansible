@@ -1,9 +1,7 @@
 # roles/dns_servers/vars/main.yml
 # All ADGuardHome variables.
 
-ansible_dir: /home/dbegin/build/ansible
 vault_secrets_dir: /home/dbegin/build/secrets
-#lego_version: v5.3.1
 
 # APK dependencies
 adguard_deps_apk:
