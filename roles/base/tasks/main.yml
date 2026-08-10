@@ -6,6 +6,11 @@
   ansible.builtin.include_vars:
     dir: vars
 
+# Include vault secrets
+- name: Import | Include secrets variable files.
+  ansible.builtin.include_vars:
+    file: "{{ vault_secrets_dir }}/vault-secrets.yml"
+
 # Run update tasks
 - name: Base | Run all system updates.
   ansible.builtin.import_tasks: updates.yml
@@ -17,9 +22,9 @@
   ansible.builtin.import_tasks: updates-dns.yml
   when: inventory_hostname in groups['dns_servers']
 
-#- name: Base | Update vault configurations.
-#  ansible.builtin.import_tasks: updates-vault.yml
-#  when: inventory_hostname in groups['vault_servers']
+- name: Base | Update vault configurations.
+  ansible.builtin.import_tasks: updates-vault.yml
+  when: inventory_hostname in groups['vault_servers']
 
 - name: Base | Reboot all servers.
   ansible.builtin.reboot:

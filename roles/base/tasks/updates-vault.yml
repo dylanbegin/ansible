@@ -1,21 +1,16 @@
 # roles/base/tasks/updates-vault.yml
 # Update all Vault configurations.
 
-# Include variables
-- name: Import | Include variable files.
-  ansible.builtin.include_vars:
-    dir: '{{ ansible_dir }}/roles/vault_servers/vars'
-
+# Get Vault token.
 - name: Import | Include secrets-rw token variable.
   ansible.builtin.slurp:
-    src: '/home/{{ local_user }}/vault-token-root'
+    src: "/root/vault-token-root"
   register: vault_root_token
-  delegate_to: localhost
 
 # Load all secrets into Vault
 - name: Vault | Loading all secrets into Vault.
   ansible.builtin.uri:
-    url: "https://{{ ansible_fqdn }}:8200/v1/secrets-v2/data/{{ item.key }}"
+    url: "https://{{ ansible_facts.fqdn }}:8200/v1/secrets-v2/data/{{ item.key }}"
     headers:
       X-Vault-Token: "{{ vault_root_token }}"
     body:
@@ -27,3 +22,36 @@
       - 200
       - 204
   loop: "{{ vault_kv | dict2items }}"
+
+# Update Vault
+- name: Vault | Get latest binary release.
+  ansible.builtin.uri:
+    url: https://api.releases.hashicorp.com/v1/releases/vault/latest?license_class=oss
+    headers:
+      Accept: "application/json"
+    return_content: true
+    method: GET
+  register: vault_release
+
+- name: Vault | Set version and download url.
+  ansible.builtin.set_fact:
+    vault_version: "{{ vault_release.json.version }}"
+    vault_url: "https://releases.hashicorp.com/vault/{{ vault_release.json.version }}/vault_{{ vault_release.json.version }}_linux_amd64.zip"
+
+- name: Vault | Download binary package.
+  ansible.builtin.get_url:
+    url: "{{ vault_url }}"
+    dest: /tmp/vault.zip
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Vault | Unzip binary package.
+  ansible.builtin.unarchive:
+    src: /tmp/vault.zip
+    dest: /usr/sbin
+    owner: root
+    group: root
+    mode: 0755
+    remote_src: true
+  when: ansible_facts.distribution in ["Alpine"]

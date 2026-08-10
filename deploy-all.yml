@@ -1,11 +1,11 @@
 # Master deployment playbook for all servers on fresh site.
 
 # Config and deploy DNS servers
-#- name: Deploy | Run DNS role.
-#  hosts: dns_servers
-#  become: true
-#  roles:
-#    - dns_servers
+- name: Deploy | Run DNS role.
+  hosts: dns_servers
+  become: true
+  roles:
+    - dns_servers
 
 # Config and deploy Vault server
 - name: Deploy | Run Vault role.
@@ -13,10 +13,3 @@
   become: true
   roles:
     - vault_servers
-
-# Update and reboot all servers
-#- name: Deploy | Run Base role.
-#  hosts: all
-#  become: true
-#  roles:
-#    - base

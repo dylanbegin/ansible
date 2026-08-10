@@ -2,5 +2,5 @@
 # All base variables.
 
 # Must be full path. Can't use ~
-ansible_dir: /home/cadmin/build/ansible
-local_user: cadmin
+ansible_dir: /home/dbegin/build/ansible
+vault_secrets_dir: /home/dbegin/build/secrets
