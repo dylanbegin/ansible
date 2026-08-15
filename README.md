@@ -1,7 +1,7 @@
 > [!NOTE]
 > This is a mirrored repo.
 
-# ![logo](https://raw.githubusercontent.com/walkxcode/dashboard-icons/07a06d893e901fda965ba10f39d7aa7a3a18ea0d/svg/ansible.svg) Ansible Role for Core Services
+# 󱂚 Ansible Role for Core Services
 > [!IMPORTANT]
 > This repo is built for my own environment so please review all configurations to verify compatibility!
 
