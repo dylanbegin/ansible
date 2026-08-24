@@ -124,7 +124,7 @@ dns_local_records:
     ip: 10.10.10.100
   - fqdn: wifi.cryogence.org     #unifi ingress
     ip: 10.10.10.101
-  - fqdn: teleport.cryogence.org #proxy ingress
+  - fqdn: teleport.cryogence.org #ssh ingress
     ip: 10.10.10.102
 
 # Zone for Kubernetes apps
@@ -169,6 +169,7 @@ dns_zone_io_subdomain:
   - host: tor
   - host: tv
   - host: vault
+  - host: who
   - host: wifi
   - host: wiki
 
