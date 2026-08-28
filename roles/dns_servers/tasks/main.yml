@@ -142,7 +142,7 @@
     dest: /etc/unbound/unbound.conf.bk
     owner: unbound
     group: unbound
-    mode: 0640
+    mode: 0644
     remote_src: true
 
 - name: unbound | Import config file.
