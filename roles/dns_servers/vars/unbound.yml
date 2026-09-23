@@ -139,6 +139,7 @@ dns_zone_io_subdomain:
   - host: code
   - host: dash
   - host: dns
+  - host: draw
   - host: drive
   - host: ebs
   - host: eks
