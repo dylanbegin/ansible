@@ -149,6 +149,7 @@ dns_zone_io_subdomain:
   - host: home
   - host: hubble
   - host: iot
+  - host: lab
   - host: ldap
   - host: lidarr
   - host: music
